@@ -67,6 +67,12 @@ build CMakeFiles/verletIntegration.dir/simulation.cpp.obj: CXX_COMPILER__verletI
   OBJECT_DIR = CMakeFiles\verletIntegration.dir
   OBJECT_FILE_DIR = CMakeFiles\verletIntegration.dir
 
+build CMakeFiles/verletIntegration.dir/LineObstacle.cpp.obj: CXX_COMPILER__verletIntegration_unscanned_Debug C$:/Users/Yavuz/CLionProjects/verletIntegration/LineObstacle.cpp || cmake_object_order_depends_target_verletIntegration
+  DEP_FILE = CMakeFiles\verletIntegration.dir\LineObstacle.cpp.obj.d
+  FLAGS = -g -std=gnu++20 -fdiagnostics-color=always
+  OBJECT_DIR = CMakeFiles\verletIntegration.dir
+  OBJECT_FILE_DIR = CMakeFiles\verletIntegration.dir
+
 
 # =============================================================================
 # Link build statements for EXECUTABLE target verletIntegration
@@ -75,7 +81,7 @@ build CMakeFiles/verletIntegration.dir/simulation.cpp.obj: CXX_COMPILER__verletI
 #############################################
 # Link the executable verletIntegration.exe
 
-build verletIntegration.exe: CXX_EXECUTABLE_LINKER__verletIntegration_Debug CMakeFiles/verletIntegration.dir/main.cpp.obj CMakeFiles/verletIntegration.dir/particle.cpp.obj CMakeFiles/verletIntegration.dir/simulation.cpp.obj | C$:/msys64/ucrt64/lib/libsfml-graphics.dll.a C$:/msys64/ucrt64/lib/libsfml-window.dll.a C$:/msys64/ucrt64/lib/libsfml-system.dll.a
+build verletIntegration.exe: CXX_EXECUTABLE_LINKER__verletIntegration_Debug CMakeFiles/verletIntegration.dir/main.cpp.obj CMakeFiles/verletIntegration.dir/particle.cpp.obj CMakeFiles/verletIntegration.dir/simulation.cpp.obj CMakeFiles/verletIntegration.dir/LineObstacle.cpp.obj | C$:/msys64/ucrt64/lib/libsfml-graphics.dll.a C$:/msys64/ucrt64/lib/libsfml-window.dll.a C$:/msys64/ucrt64/lib/libsfml-system.dll.a
   FLAGS = -g
   LINK_LIBRARIES = C:/msys64/ucrt64/lib/libsfml-graphics.dll.a  C:/msys64/ucrt64/lib/libsfml-window.dll.a  C:/msys64/ucrt64/lib/libsfml-system.dll.a  -lwinmm  -lkernel32 -luser32 -lgdi32 -lwinspool -lshell32 -lole32 -loleaut32 -luuid -lcomdlg32 -ladvapi32
   OBJECT_DIR = CMakeFiles\verletIntegration.dir

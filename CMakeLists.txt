@@ -5,7 +5,10 @@ project(verletIntegration)
 set(CMAKE_CXX_STANDARD 20)
 
 # Add executable
-add_executable(verletIntegration main.cpp Particle.cpp simulation.cpp)
+add_executable(verletIntegration main.cpp Particle.cpp simulation.cpp
+        LineObstacle.cpp
+        LineObstacle.h
+)
 
 # Set SFML's directories and libraries
 set(CMAKE_PREFIX_PATH "C:/msys64/ucrt64") # Path to the MSYS2 MinGW64 directory

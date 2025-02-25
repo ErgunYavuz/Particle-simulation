@@ -18,6 +18,7 @@ namespace prtcl {
     void Particle::update() {
         //update position
         position += velocity;
+        position.y += GRAVITY;
         // Boundary collision
         if (position.x < 10) { position.x = 10; velocity.x *= -RESTITUTION;}
         if (position.x > width + shape.getRadius()) { position.x *= -shape.getRadius();}

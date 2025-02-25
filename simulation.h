@@ -2,6 +2,8 @@
 
 #include <SFML/Graphics.hpp>
 #include <vector>
+
+#include "LineObstacle.h"
 #include "Particle.h"
 
 namespace sim{
@@ -13,6 +15,7 @@ namespace sim{
     class Simulation {
         sf::RenderWindow window;
         std::vector<prtcl::Particle> particles;
+        std::vector<LineObstacle> obstacles;
         sf::Clock clock;
         sf::Clock fpsClock;
         sf::Font font;
@@ -21,6 +24,7 @@ namespace sim{
 
         void resolveWallCollisions(prtcl::Particle &p);
         void resolveParticleCollision(prtcl::Particle &p1, prtcl::Particle &p2);
+        void resolveObstacleCollision(prtcl::Particle &p);
 
     public:
         Simulation();
