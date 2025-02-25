@@ -6,21 +6,12 @@
 
 namespace sim {
     Simulation::Simulation() : window(sf::VideoMode(WIDTH, HEIGHT), "Particle Simulation"), fps(0) {
-        window.setFramerateLimit(60);
-        if (!font.loadFromFile("Roboto-VariableFont_wdth,wght.ttf")) {
-            throw std::runtime_error("Failed to load font");
-        }
-        fpsText.setFont(font);
-        fpsText.setCharacterSize(20);
-        fpsText.setFillColor(sf::Color::White);
-        fpsText.setPosition(10, 10);
-
         for (int i = 0; i < NUM_PARTICLES; i++) {
             float x = rand() % (WIDTH - 2 * (int) prtcl::RADIUS) + prtcl::RADIUS;
             float y = rand() % (HEIGHT - 2 * (int) prtcl::RADIUS) + prtcl::RADIUS;
             float vx = SPEED * ((rand() % 200 - 100) / 100.0f);
             float vy = SPEED * ((rand() % 200 - 100) / 100.0f);
-            particles.emplace_back(x, y, vx, vy);
+            particles.emplace_back(x, y, vx, vy, HEIGHT, WIDTH);
         }
     }
     void Simulation::resolveWallCollisions(prtcl::Particle &p) {
@@ -50,6 +41,15 @@ namespace sim {
     }
 
     void Simulation::run() {
+        window.setFramerateLimit(60);
+        if (!font.loadFromFile("Roboto-VariableFont_wdth,wght.ttf")) {
+            throw std::runtime_error("Failed to load font");
+        }
+        fpsText.setFont(font);
+        fpsText.setCharacterSize(20);
+        fpsText.setFillColor(sf::Color::White);
+        fpsText.setPosition(10, 10);
+
         while (window.isOpen()) {
             sf::Event event;
             while (window.pollEvent(event)) {
@@ -68,9 +68,10 @@ namespace sim {
 
             for (auto &p : particles) {
                 p.update();
-                resolveWallCollisions(p);
             }
 
+            //brute force methode to resolve collsion O(n²)
+            //TODO : implement grid collision detection algo
             for (size_t i = 0; i < particles.size(); i++) {
                 for (size_t j = i + 1; j < particles.size(); j++) {
                     resolveParticleCollision(particles[i], particles[j]);
@@ -79,6 +80,8 @@ namespace sim {
 
             window.clear();
             window.draw(fpsText);
+            //One draw call per particle kills performance
+            //TODO : implement instanced rendering
             for (auto &p : particles)
                 window.draw(p.shape);
             window.display();

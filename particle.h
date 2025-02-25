@@ -7,12 +7,16 @@ namespace prtcl {
     const float RESTITUTION = 0.8f;
 
     class Particle {
+        int const height, width;
     public:
         sf::Vector2f position;
         sf::Vector2f velocity;
         sf::CircleShape shape;
 
         Particle(float x, float y, float vx, float vy);
+
+        Particle(float x, float y, float vx, float vy, int height, int width);
+
         void update();
     };
 }

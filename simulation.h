@@ -5,9 +5,9 @@
 #include "Particle.h"
 
 namespace sim{
-    const int WIDTH = 800;
-    const int HEIGHT = 600;
-    const int NUM_PARTICLES = 50;
+    const int WIDTH = 1600;
+    const int HEIGHT = 800;
+    const int NUM_PARTICLES = 1000;
     const float SPEED = 2.0f;
 
     class Simulation {
