@@ -14,7 +14,6 @@ LineObstacle::LineObstacle(float x1, float y1, float x2, float y2) {
     line.setRotation(std::atan2(direction.y, direction.x) * 180.f / 3.14159f);
     line.setFillColor(sf::Color::White);
 
-    // Compute the normal vector (perpendicular to the line)
     normal = sf::Vector2f(-direction.y / length, direction.x / length);
 }
 
@@ -29,19 +28,27 @@ bool LineObstacle::checkCollision(sf::Vector2f &position, float radius, sf::Vect
     float lineLength = std::sqrt(lineVector.x * lineVector.x + lineVector.y * lineVector.y);
     sf::Vector2f lineDirection = lineVector / lineLength;
 
+    // Projection of pointVector onto the line
     float projection = (pointVector.x * lineDirection.x + pointVector.y * lineDirection.y);
 
+    // Clamp the projection to the line segment
     if (projection < 0) projection = 0;
     if (projection > lineLength) projection = lineLength;
 
+    // Calculate the closest point on the line
     sf::Vector2f closestPoint = startPoint + lineDirection * projection;
+
+    // Calculate distance and normal
     sf::Vector2f distanceVec = position - closestPoint;
     float distance = std::sqrt(distanceVec.x * distanceVec.x + distanceVec.y * distanceVec.y);
 
-    if (distance < radius+line.getSize().y) {
-        collisionNormal = normal;
+    // Check if the particle collides
+    if (distance < radius + 4) {
+        // Dynamically compute collision normal by normalizing the distance vector
+        collisionNormal = distanceVec / distance;
         return true;
     }
 
     return false;
 }
+

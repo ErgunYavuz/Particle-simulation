@@ -31,6 +31,30 @@ namespace prtcl {
         }
         shape.setPosition(position);
     }
+
+    // In Particle::update()
+void Particle::update(float dt) {
+    // Apply forces and update velocity
+    velocity.y += GRAVITY * dt;
+
+    // Update position using velocity and time step
+    position += velocity * dt;
+
+    // Boundary collision checks (unchanged)
+    if (position.x < 10) { position.x = 10; velocity.x *= -RESTITUTION;}
+    if (position.x > width - shape.getRadius()) { position.x = width - shape.getRadius(); velocity.x *= -RESTITUTION;}
+    if (position.y < 10) { position.y = 10; velocity.y *= -RESTITUTION;}
+    if (position.y + shape.getRadius() >= height) {
+        position.y = height - shape.getRadius();
+        velocity.y = -std::abs(velocity.y ) * RESTITUTION;
+        velocity.x *= RESTITUTION;
+    }
+
+    // Update shape position
+    shape.setPosition(position);
+}
+
 };
+
 
 
