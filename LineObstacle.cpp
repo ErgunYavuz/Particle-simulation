@@ -1,50 +1,41 @@
 #include "LineObstacle.h"
 #include <cmath>
+#include <iostream>
 
 LineObstacle::LineObstacle(float x1, float y1, float x2, float y2) {
     startPoint = {x1, y1};
     endPoint = {x2, y2};
-
-    sf::Vector2f direction = endPoint - startPoint;
-    float length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-
+    direction = endPoint - startPoint;
+    length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
+    // Store normalized direction for faster calculations
+    normalizedDirection = direction / length;
     line.setSize({length, 10.f});
-    line.setOrigin(0, 2.5f);
+    line.setOrigin(0, 5.f);  // Center the line vertically
     line.setPosition(startPoint);
     line.setRotation(std::atan2(direction.y, direction.x) * 180.f / 3.14159f);
     line.setFillColor(sf::Color::White);
-
-    normal = sf::Vector2f(-direction.y / length, direction.x / length);
+    // Calculate the normal vector (perpendicular to the line)
+    normal = sf::Vector2f(-normalizedDirection.y, normalizedDirection.x);
 }
 
-void LineObstacle::draw(sf::RenderWindow &window) {
-    window.draw(line);
+sf::Vector2f LineObstacle::getClosestPoint(const sf::Vector2f& point) const {
+    sf::Vector2f pointVector = point - startPoint;
+    float projection = pointVector.x * normalizedDirection.x + pointVector.y * normalizedDirection.y;
+    projection = std::max(0.0f, std::min(projection, length));
+    return startPoint + normalizedDirection * projection;
 }
 
 bool LineObstacle::checkCollision(sf::Vector2f &position, float radius, sf::Vector2f &collisionNormal) {
-    sf::Vector2f lineVector = endPoint - startPoint;
-    sf::Vector2f pointVector = position - startPoint;
-
-    float lineLength = std::sqrt(lineVector.x * lineVector.x + lineVector.y * lineVector.y);
-    sf::Vector2f lineDirection = lineVector / lineLength;
-
-    // Projection of pointVector onto the line
-    float projection = (pointVector.x * lineDirection.x + pointVector.y * lineDirection.y);
-
-    // Clamp the projection to the line segment
-    if (projection < 0) projection = 0;
-    if (projection > lineLength) projection = lineLength;
-
-    // Calculate the closest point on the line
-    sf::Vector2f closestPoint = startPoint + lineDirection * projection;
+    sf::Vector2f closestPoint = getClosestPoint(position);
 
     // Calculate distance and normal
     sf::Vector2f distanceVec = position - closestPoint;
-    float distance = std::sqrt(distanceVec.x * distanceVec.x + distanceVec.y * distanceVec.y);
+    float distanceSq = distanceVec.x * distanceVec.x + distanceVec.y * distanceVec.y;
+    float radiusSq = (radius + 5.0f) * (radius + 5.0f);
 
-    // Check if the particle collides
-    if (distance < radius + 4) {
-        // Dynamically compute collision normal by normalizing the distance vector
+    // Check collision
+    if (distanceSq < radiusSq) {
+        float distance = std::sqrt(distanceSq);
         collisionNormal = distanceVec / distance;
         return true;
     }
@@ -52,3 +43,6 @@ bool LineObstacle::checkCollision(sf::Vector2f &position, float radius, sf::Vect
     return false;
 }
 
+void LineObstacle::draw(sf::RenderWindow &window) {
+    window.draw(line);
+}

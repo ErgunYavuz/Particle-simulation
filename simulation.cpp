@@ -5,7 +5,8 @@
 
 namespace sim {
     bool windActive = false;
-    float windStrength = 0.05f;
+    float windStrength = 1.0f;
+    float dt = 1.0/5.0f;
 
     sf::RectangleShape windButton;
     sf::Text windButtonText;
@@ -36,17 +37,7 @@ namespace sim {
         for (int i = 0; i < NUM_PARTICLES; i++) {
             float x = rand() % (WIDTH - 2 * (int) prtcl::RADIUS) + prtcl::RADIUS;
             float y = rand() % (HEIGHT - 2 * (int) prtcl::RADIUS) + prtcl::RADIUS;
-            float vx = (rand() % 200 - 100) / 100.0f;
-            float vy = (rand() % 200 - 100) / 100.0f;
-            particles.emplace_back(x, y, 0, 0, HEIGHT, WIDTH);
-        }
-    }
-    void Simulation::resolveWallCollisions(prtcl::Particle &p) {
-        if (p.position.x - prtcl::RADIUS < 0 || p.position.x + prtcl::RADIUS > window.getSize().x)
-            p.velocity.x = -p.velocity.x;
-        if (p.position.y - prtcl::RADIUS < 0 || p.position.y + prtcl::RADIUS > window.getSize().y) {
-            p.velocity.y = -p.velocity.y;
-            p.position.y = std::min(p.position.y, window.getSize().x - prtcl::RADIUS);
+            particles.emplace_back(x, y, HEIGHT, WIDTH);
         }
     }
 
@@ -58,19 +49,20 @@ namespace sim {
             sf::Vector2f normal = diff / dist;
             float overlap = (2 * prtcl::RADIUS - dist) * 0.5f;
 
+            // Push particles apart
             p1.position -= normal * overlap;
             p2.position += normal * overlap;
 
-            // Velocity response (elastic collision)
-            sf::Vector2f relativeVelocity = p2.velocity - p1.velocity;
+            sf::Vector2f vel1 = p1.getVelocity(dt);
+            sf::Vector2f vel2 = p2.getVelocity(dt);
+            sf::Vector2f relativeVelocity = vel2 - vel1;
             float velocityAlongNormal = relativeVelocity.x * normal.x + relativeVelocity.y * normal.y;
-
             if (velocityAlongNormal > 0) return;
-
-            float elasticity = 1.0f;
-            float impulse = -(1 + elasticity) * velocityAlongNormal / 2.0f;
-            p1.velocity -= impulse * normal;
-            p2.velocity += impulse * normal;
+            float impulse = -(1 + p1.RESTITUTION) * velocityAlongNormal / 2.0f;
+            vel1 -= impulse * normal;
+            vel2 += impulse * normal;
+            p1.setVelocity(vel1, dt);
+            p2.setVelocity(vel2, dt);
         }
     }
 
@@ -78,11 +70,67 @@ namespace sim {
         for (auto &obstacle : obstacles) {
             sf::Vector2f collisionNormal;
             if (obstacle.checkCollision(p.position, prtcl::RADIUS, collisionNormal)) {
-                float dot = p.velocity.x * collisionNormal.x + p.velocity.y * collisionNormal.y;
-                p.velocity -= 2 * dot * collisionNormal *p.RESTITUTION;
-                p.position += collisionNormal * 2.f; // slight Push out to avoid re-entering
+                // Get current velocity
+                sf::Vector2f vel = p.getVelocity(dt);
+
+                // Calculate reflection
+                float dot = vel.x * collisionNormal.x + vel.y * collisionNormal.y;
+                sf::Vector2f reflection = vel - 2 * dot * collisionNormal * p.RESTITUTION;
+
+                // Push out to avoid re-entry
+                p.position += collisionNormal * .5f;
+
+                // Set new velocity
+                p.setVelocity(reflection, dt);
             }
         }
+    }
+
+    void Simulation::countFPS() {
+        float frameTime = clock.restart().asSeconds();
+        if (fpsClock.getElapsedTime().asMilliseconds() >= 500) {
+            float fps = 1.f / frameTime;
+            std::ostringstream fpsStream;
+            fpsStream << "FPS: " << static_cast<int>(fps);
+            fpsText.setString(fpsStream.str());
+            fpsClock.restart();
+        }
+    }
+
+    void Simulation::update(float dt) {
+        for (int i = 0; i < particles.size(); i++) {
+            particles[i].acceleration = {0.0f, prtcl::GRAVITY};
+            if (windActive) {
+                particles[i].acceleration.x += windStrength;
+            }
+            particles[i].update(dt);
+            // Resolve obstacle collisions
+            resolveObstacleCollision(particles[i]);
+            for (int j = i + 1; j < particles.size(); j++) {
+                resolveParticleCollision(particles[i], particles[j]);
+            }
+        }
+    }
+
+    void Simulation::render() {
+        window.clear();
+        window.draw(fpsText);
+        if (windActive) {
+            windButton.setFillColor(sf::Color::Green);
+        } else {
+            windButton.setFillColor(sf::Color::Red);
+        }
+        window.draw(windButton);
+        window.draw(windButtonText);
+
+        for (auto &o : obstacles) {
+            o.draw(window);
+        }
+
+        for (auto &p : particles) {
+            p.draw(window);
+        }
+        window.display();
     }
 
     void Simulation::run() {
@@ -91,64 +139,17 @@ namespace sim {
             while (window.pollEvent(event)) {
                 if (event.type == sf::Event::Closed)
                     window.close();
-
                 // Handle button click
-                if (event.type == sf::Event::MouseButtonPressed) {
-                    if (event.mouseButton.button == sf::Mouse::Left) {
-                        sf::Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
-                        if (windButton.getGlobalBounds().contains(mousePos)) {
-                            windActive = !windActive;
-                            windButtonText.setString(windActive ? "Wind: ON" : "Wind: OFF");
-                        }
-                    }
+                if (event.type == sf::Event::MouseButtonPressed &&
+                    event.mouseButton.button == sf::Mouse::Left &&
+                    windButton.getGlobalBounds().contains( sf::Vector2f(event.mouseButton.x, event.mouseButton.y))) {
+                        windActive = !windActive;
+                        windButtonText.setString(windActive ? "Wind: ON" : "Wind: OFF");
                 }
             }
-
-            float deltaTime = clock.restart().asSeconds();
-            if (fpsClock.getElapsedTime().asMilliseconds() >= 500) {
-                float fps = 1.f / deltaTime;
-                std::ostringstream fpsStream;
-                fpsStream << "FPS: " << static_cast<int>(fps);
-                fpsText.setString(fpsStream.str());
-                fpsClock.restart();
-            }
-
-            for (auto &p : particles) {
-                if (windActive) {
-                    p.velocity.x += windStrength; // Apply wind force
-                }
-                p.update(1.0f/60.0f);
-                resolveObstacleCollision(p);
-                //resolveWallCollisions(p);
-            }
-
-            for (size_t i = 0; i < particles.size(); i++) {
-                for (size_t j = i + 1; j < particles.size(); j++) {
-                    resolveParticleCollision(particles[i], particles[j]);
-                }
-            }
-
-            window.clear();
-            window.draw(fpsText);
-            if (windActive) {
-                windButton.setFillColor(sf::Color::Green);
-            }else
-                windButton.setFillColor(sf::Color::Red);
-            window.draw(windButton);
-            window.draw(windButtonText);
-
-            for (auto &o : obstacles) {
-                o.draw(window);
-            }
-
-            for (auto &p : particles)
-                window.draw(p.shape);
-            window.display();
+            countFPS();
+            update(dt);
+            render();
         }
     }
 }
-
-
-
-
-

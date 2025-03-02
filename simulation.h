@@ -18,8 +18,11 @@ namespace sim{
         float fps;
 
         void resolveWallCollisions(prtcl::Particle &p);
-        static void resolveParticleCollision(prtcl::Particle &p1, prtcl::Particle &p2);
+        void resolveParticleCollision(prtcl::Particle &p1, prtcl::Particle &p2);
         void resolveObstacleCollision(prtcl::Particle &p);
+        void countFPS();
+        void update(float dt);
+        void render();
 
     public:
         Simulation(int WIDTH, int HEIGHT, int NUM_PARTICLES);
