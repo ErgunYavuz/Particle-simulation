@@ -13,7 +13,7 @@ namespace prtcl {
         shape.setRadius(RADIUS);
         shape.setOrigin(RADIUS, RADIUS);
         shape.setPosition(position);
-        shape.setFillColor(sf::Color::Blue);
+        //shape.setFillColor(sf::Color::Blue);
     }
 
     void Particle::update(float dt) {
@@ -63,6 +63,24 @@ namespace prtcl {
     }
 
     void Particle::draw(sf::RenderWindow &window) {
+        // Calculate velocity magnitude (speed)
+        sf::Vector2f vel = getVelocity(1.0f); // Using 1.0 as dt for simplicity
+        float speed = std::sqrt(vel.x * vel.x + vel.y * vel.y);
+
+        // Define min and max speeds for color mapping
+        const float MIN_SPEED = 0.0f;
+        const float MAX_SPEED = 10.0f; // Adjust based on your simulation
+
+        // Clamp and normalize speed between 0 and 1
+        float normalizedSpeed = std::max(0.0f, std::min(1.0f, (speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)));
+
+        // Interpolate between blue (0,0,255) and red (255,0,0)
+        int red = static_cast<int>(normalizedSpeed * 255);
+        int blue = static_cast<int>((1.0f - normalizedSpeed) * 255);
+
+        // Set the color
+        shape.setFillColor(sf::Color(red, 0, blue));
+
         window.draw(shape);
     }
 };

@@ -3,13 +3,13 @@
 
 namespace prtcl {
     const float RADIUS = 10.0f;
-    const float GRAVITY = 1.0f;
+    const float GRAVITY = 1000.0f;
 
     class Particle {
     public:
         int const height, width;
         sf::Vector2f oldPosition;
-        const float RESTITUTION = 0.5f;
+        const float RESTITUTION = 0.99f;
         sf::Vector2f position;
         sf::Vector2f acceleration;
         sf::CircleShape shape;

@@ -5,8 +5,9 @@
 
 namespace sim {
     bool windActive = false;
-    float windStrength = 1.0f;
-    float dt = 1.0/5.0f;
+    float windStrength = 2000.0f;
+    float dt = 1.0/60.0f;
+    const int SUBSTEPS = 2;
 
     sf::RectangleShape windButton;
     sf::Text windButtonText;
@@ -32,8 +33,8 @@ namespace sim {
         windButtonText.setString("Wind: OFF");
         windButtonText.setPosition(WIDTH - 140, 18);
 
-        obstacles.emplace_back(300, -10, 800, 150);
-        //obstacles.emplace_back(600, HEIGHT, 900, 650);
+        //obstacles.emplace_back(300, -10, 800, 150);
+        //obstacles.emplace_back(WIDTH/2, HEIGHT, 900, 650);
         for (int i = 0; i < NUM_PARTICLES; i++) {
             float x = rand() % (WIDTH - 2 * (int) prtcl::RADIUS) + prtcl::RADIUS;
             float y = rand() % (HEIGHT - 2 * (int) prtcl::RADIUS) + prtcl::RADIUS;
@@ -70,17 +71,13 @@ namespace sim {
         for (auto &obstacle : obstacles) {
             sf::Vector2f collisionNormal;
             if (obstacle.checkCollision(p.position, prtcl::RADIUS, collisionNormal)) {
-                // Get current velocity
                 sf::Vector2f vel = p.getVelocity(dt);
 
-                // Calculate reflection
                 float dot = vel.x * collisionNormal.x + vel.y * collisionNormal.y;
                 sf::Vector2f reflection = vel - 2 * dot * collisionNormal * p.RESTITUTION;
 
-                // Push out to avoid re-entry
                 p.position += collisionNormal * .5f;
 
-                // Set new velocity
                 p.setVelocity(reflection, dt);
             }
         }
@@ -98,16 +95,18 @@ namespace sim {
     }
 
     void Simulation::update(float dt) {
-        for (int i = 0; i < particles.size(); i++) {
-            particles[i].acceleration = {0.0f, prtcl::GRAVITY};
-            if (windActive) {
-                particles[i].acceleration.x += windStrength;
-            }
-            particles[i].update(dt);
-            // Resolve obstacle collisions
-            resolveObstacleCollision(particles[i]);
-            for (int j = i + 1; j < particles.size(); j++) {
-                resolveParticleCollision(particles[i], particles[j]);
+        float scaledDt = dt / SUBSTEPS;
+        for (int step = 0; step < SUBSTEPS; step++) {
+            for (int i = 0; i < particles.size(); i++) {
+                particles[i].acceleration = {0.0f, prtcl::GRAVITY};
+                if (windActive) {
+                    particles[i].acceleration.y -= windStrength;
+                }
+                particles[i].update(scaledDt);
+                resolveObstacleCollision(particles[i]);
+                for (int j = i + 1; j < particles.size(); j++) {
+                    resolveParticleCollision(particles[i], particles[j]);
+                }
             }
         }
     }
@@ -148,7 +147,9 @@ namespace sim {
                 }
             }
             countFPS();
-            update(dt);
+            for (int i = 0; i < 1; i++) {
+                update(dt);
+            }
             render();
         }
     }
