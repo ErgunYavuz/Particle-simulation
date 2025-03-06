@@ -7,22 +7,17 @@ namespace prtcl {
 
     class Particle {
     public:
-        int const height, width;
         sf::Vector2f oldPosition;
-        const float RESTITUTION = 0.99f;
+        const float RESTITUTION = 0.8f;
         sf::Vector2f position;
         sf::Vector2f acceleration;
         sf::CircleShape shape;
-        Particle(float x, float y, int height, int width);
 
+        Particle(float x, float y);
         void update(float dt);
-        void applyConstraints(float dt);
-        void setVelocity(const sf::Vector2f& vel, float dt);
-
+        void setVelocity(const sf::Vector2f &vel);
+        sf::Vector2f getVelocity() const;
         void accelerate(sf::Vector2f a);
-
         void draw(sf::RenderWindow &window);
-
-        sf::Vector2f getVelocity(float dt) const;
     };
 }

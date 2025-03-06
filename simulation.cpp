@@ -12,13 +12,14 @@ namespace sim {
     bool windActive = false;
     float windStrength = 2000.0f;
     float dt = 1.0 / 60.0f;
-    const int SUBSTEPS = 8;
+    const int SUBSTEPS = 4;
     const int NUM_THREADS = std::thread::hardware_concurrency(); // Number of available threads
 
     sf::RectangleShape windButton;
     sf::Text windButtonText;
 
     Simulation::Simulation(int WIDTH, int HEIGHT, int NUM_PARTICLES) : window(sf::VideoMode(WIDTH, HEIGHT), "Particle Simulation"), fps(0) {
+        //std::cout << NUM_THREADS << std::endl;
         // Setup fps limit and counter
         window.setFramerateLimit(60);
         if (!font.loadFromFile("Roboto-VariableFont_wdth,wght.ttf")) {
@@ -42,7 +43,7 @@ namespace sim {
         for (int i = 0; i < NUM_PARTICLES; i++) {
             float x = rand() % (WIDTH - 2 * (int)prtcl::RADIUS) + prtcl::RADIUS;
             float y = rand() % (HEIGHT - 2 * (int)prtcl::RADIUS) + prtcl::RADIUS;
-            particles.emplace_back(x, y, HEIGHT, WIDTH);
+            particles.emplace_back(x, y);
         }
     }
 
@@ -50,7 +51,7 @@ namespace sim {
         for (prtcl::Particle& obj : particles) {
             sf::Vector2f dir = pos - obj.position;
             float dist = sqrt(dir.x * dir.x + dir.y * dir.y);
-            obj.accelerate(dir * 1.f);
+            obj.accelerate(dir);
             //obj.update(dt);
         }
     }
@@ -59,8 +60,36 @@ namespace sim {
         for (prtcl::Particle& obj : particles) {
             sf::Vector2f dir = pos - obj.position;
             float dist = sqrt(dir.x * dir.x + dir.y * dir.y);
-            obj.accelerate(dir * -1.f);
+            obj.accelerate(-dir);
             //obj.update(dt);
+        }
+    }
+
+    void Simulation::resolveWallCollisions(prtcl::Particle& p) {
+        sf::Vector2f vel = p.getVelocity();
+        if (p.position.x < 10) {
+            p.position.x = 10;
+            vel.x *= -p.RESTITUTION;
+            p.setVelocity(vel);
+        }
+
+        if (p.position.x > window.getSize().x - p.shape.getRadius()) {
+            p.position.x = window.getSize().x - p.shape.getRadius();
+            vel.x *= -p.RESTITUTION;
+            p.setVelocity(vel);
+        }
+
+        if (p.position.y < 10) {
+            p.position.y = 10;
+            vel.y *= -p.RESTITUTION;
+            p.setVelocity(vel);
+        }
+
+        if (p.position.y + p.shape.getRadius() >= window.getSize().y) {
+            p.position.y = window.getSize().y - p.shape.getRadius();
+            vel.y = -std::abs(vel.y) * p.RESTITUTION;
+            vel.x *= 0.99f;
+            p.setVelocity(vel);
         }
     }
 
@@ -76,16 +105,16 @@ namespace sim {
             p1.position -= normal * overlap;
             p2.position += normal * overlap;
 
-            sf::Vector2f vel1 = p1.getVelocity(dt);
-            sf::Vector2f vel2 = p2.getVelocity(dt);
+            sf::Vector2f vel1 = p1.getVelocity();
+            sf::Vector2f vel2 = p2.getVelocity();
             sf::Vector2f relativeVelocity = vel2 - vel1;
             float velocityAlongNormal = relativeVelocity.x * normal.x + relativeVelocity.y * normal.y;
             if (velocityAlongNormal > 0) return;
             float impulse = -(1 + p1.RESTITUTION) * velocityAlongNormal / 2.0f;
             vel1 -= impulse * normal;
             vel2 += impulse * normal;
-            p1.setVelocity(vel1, dt);
-            p2.setVelocity(vel2, dt);
+            p1.setVelocity(vel1);
+            p2.setVelocity(vel2);
         }
     }
 
@@ -93,14 +122,14 @@ namespace sim {
         for (auto& obstacle : obstacles) {
             sf::Vector2f collisionNormal;
             if (obstacle.checkCollision(p.position, prtcl::RADIUS, collisionNormal)) {
-                sf::Vector2f vel = p.getVelocity(dt);
+                sf::Vector2f vel = p.getVelocity();
 
                 float dot = vel.x * collisionNormal.x + vel.y * collisionNormal.y;
                 sf::Vector2f reflection = vel - 2 * dot * collisionNormal * p.RESTITUTION;
 
                 p.position += collisionNormal * .5f;
 
-                p.setVelocity(reflection, dt);
+                p.setVelocity(reflection);
             }
         }
     }
@@ -116,7 +145,6 @@ namespace sim {
         }
     }
 
-    //from 1000p to 2000p need better optimization
     void Simulation::update(float dt) {
         float scaledDt = dt / SUBSTEPS;
         for (int step = 0; step < SUBSTEPS; step++) {
@@ -140,22 +168,8 @@ namespace sim {
                             mousePush(sf::Vector2f(sf::Mouse::getPosition()));
                         }
                         particles[i].update(scaledDt);
+                        resolveWallCollisions(particles[i]);
                         resolveObstacleCollision(particles[i]);
-                    }
-                });
-            }
-
-            for (auto& thread : threads) {
-                thread.join();
-            }
-
-            // Parallelize particle collisions
-            threads.clear();
-            for (int t = 0; t < NUM_THREADS; t++) {
-                int start = t * chunkSize;
-                int end = (t == NUM_THREADS - 1) ? particles.size() : start + chunkSize;
-                threads.emplace_back([this, start, end]() {
-                    for (int i = start; i < end; i++) {
                         for (int j = i + 1; j < particles.size(); j++) {
                             resolveParticleCollision(particles[i], particles[j]);
                         }
@@ -189,7 +203,7 @@ namespace sim {
             p.draw(window);
         }
 
-        // Visualize pull force
+        //Visualize pull force
         // sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
         // for (prtcl::Particle& p : particles) {
         //     sf::Vertex line[] = {
@@ -217,7 +231,7 @@ namespace sim {
 
             }
 
-            //countFPS();
+            countFPS();
             update(dt);
             render();
         }

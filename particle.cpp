@@ -6,12 +6,11 @@
 
 namespace prtcl {
 
-    Particle::Particle(float x, float y, int height, int width): height(height), width(width) {
+    Particle::Particle(float x, float y){
         position = {x, y};
         oldPosition = position;
         acceleration = {0.0f, 0.0f};
         shape.setRadius(RADIUS);
-        shape.setOrigin(RADIUS, RADIUS);
         shape.setPosition(position);
     }
 
@@ -19,52 +18,24 @@ namespace prtcl {
         sf::Vector2f temp = position;
         position = 2.0f * position - oldPosition + acceleration * (dt * dt);
         oldPosition = temp;
-        applyConstraints(dt);
+        //applyConstraints();
         shape.setPosition(position);
     }
 
-    void Particle::applyConstraints(float dt) {
-        sf::Vector2f vel = getVelocity(dt);
-        if (position.x < 10) {
-            position.x = 10;
-            vel.x *= -RESTITUTION;
-            setVelocity(vel, dt);
-        }
-
-        if (position.x > width - shape.getRadius()) {
-            position.x = width - shape.getRadius();
-            vel.x *= -RESTITUTION;
-            setVelocity(vel, dt);
-        }
-
-        if (position.y < 10) {
-            position.y = 10;
-            vel.y *= -RESTITUTION;
-            setVelocity(vel, dt);
-        }
-
-        if (position.y + shape.getRadius() >= height) {
-            position.y = height - shape.getRadius();
-            vel.y = -std::abs(vel.y) * RESTITUTION;
-            vel.x *= 0.99f;
-            setVelocity(vel, dt);
-        }
+    sf::Vector2f Particle::getVelocity() const {
+        return position - oldPosition;
     }
 
-    sf::Vector2f Particle::getVelocity(float dt) const {
-        return (position - oldPosition) / dt;
-    }
-
-    void Particle::setVelocity(const sf::Vector2f& vel, float dt) {
-        oldPosition = position - vel * dt;
+    void Particle::setVelocity(const sf::Vector2f& vel) {
+        oldPosition = position - vel;
     }
     void Particle::accelerate(sf::Vector2f a) {
-        acceleration.y -= GRAVITY;
+        //acceleration.y -= GRAVITY;
         acceleration += a;
     }
 
     void Particle::draw(sf::RenderWindow &window) {
-        sf::Vector2f vel = getVelocity(1.0f);
+        sf::Vector2f vel = getVelocity();
         float speed = std::sqrt(vel.x * vel.x + vel.y * vel.y);
 
         const float MIN_SPEED = 0.0f;
