@@ -9,11 +9,10 @@ namespace prtcl {
     Particle::Particle(float x, float y, int height, int width): height(height), width(width) {
         position = {x, y};
         oldPosition = position;
-        acceleration = {0.0f, GRAVITY};
+        acceleration = {0.0f, 0.0f};
         shape.setRadius(RADIUS);
         shape.setOrigin(RADIUS, RADIUS);
         shape.setPosition(position);
-        //shape.setFillColor(sf::Color::Blue);
     }
 
     void Particle::update(float dt) {
@@ -53,34 +52,48 @@ namespace prtcl {
     }
 
     sf::Vector2f Particle::getVelocity(float dt) const {
-        // Calculate velocity from positions
         return (position - oldPosition) / dt;
     }
 
     void Particle::setVelocity(const sf::Vector2f& vel, float dt) {
-        // Update old position to reflect the new velocity
         oldPosition = position - vel * dt;
+    }
+    void Particle::accelerate(sf::Vector2f a) {
+        acceleration.y -= GRAVITY;
+        acceleration += a;
     }
 
     void Particle::draw(sf::RenderWindow &window) {
-        // Calculate velocity magnitude (speed)
-        sf::Vector2f vel = getVelocity(1.0f); // Using 1.0 as dt for simplicity
+        sf::Vector2f vel = getVelocity(1.0f);
         float speed = std::sqrt(vel.x * vel.x + vel.y * vel.y);
 
-        // Define min and max speeds for color mapping
         const float MIN_SPEED = 0.0f;
-        const float MAX_SPEED = 10.0f; // Adjust based on your simulation
+        const float MAX_SPEED = 5.0f;
 
-        // Clamp and normalize speed between 0 and 1
+        // Normalize the speed to a range of [0, 1]
         float normalizedSpeed = std::max(0.0f, std::min(1.0f, (speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED)));
 
-        // Interpolate between blue (0,0,255) and red (255,0,0)
-        int red = static_cast<int>(normalizedSpeed * 255);
-        int blue = static_cast<int>((1.0f - normalizedSpeed) * 255);
+        // Define a color gradient (cold to hot)
+        std::vector<sf::Color> colors = {
+            sf::Color(0, 0, 255),    // Blue (cold)
+            sf::Color(0, 255, 255),  // Cyan
+            sf::Color(0, 255, 0),    // Green
+            sf::Color(255, 255, 0),  // Yellow
+            sf::Color(255, 0, 0)     // Red (hot)
+        };
 
-        // Set the color
-        shape.setFillColor(sf::Color(red, 0, blue));
+        // Map the normalized speed to the color gradient
+        float colorIndex = normalizedSpeed * (colors.size() - 1);
+        int index1 = static_cast<int>(colorIndex); // Lower index
+        int index2 = std::min(index1 + 1, static_cast<int>(colors.size() - 1)); // Upper index
+        float t = colorIndex - index1; // Interpolation factor
 
+        // Interpolate between the two nearest colors
+        sf::Color color;
+        color.r = static_cast<sf::Uint8>(colors[index1].r + t * (colors[index2].r - colors[index1].r));
+        color.g = static_cast<sf::Uint8>(colors[index1].g + t * (colors[index2].g - colors[index1].g));
+        color.b = static_cast<sf::Uint8>(colors[index1].b + t * (colors[index2].b - colors[index1].b));
+        shape.setFillColor(color);
         window.draw(shape);
     }
 };

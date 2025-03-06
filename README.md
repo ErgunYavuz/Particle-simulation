@@ -2,7 +2,7 @@
 
 This is a simple particle simulation featuring particle, walls and obstacle collisions with wind interaction 
 
-![Alt Text](Ressources/Particle%20simulation.gif)_
+![Alt Text](Ressources/Particle_simulation.gif)_
 
 This project requires sfml dll files in the resources directory next to the executable produced.
 

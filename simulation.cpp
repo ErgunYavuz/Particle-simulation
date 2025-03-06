@@ -2,18 +2,24 @@
 #include <cmath>
 #include <sstream>
 #include <stdexcept>
+#include <thread>
+#include <mutex>
+#include <vector>
+#include <algorithm>
+#include <iostream>
 
 namespace sim {
     bool windActive = false;
     float windStrength = 2000.0f;
-    float dt = 1.0/60.0f;
-    const int SUBSTEPS = 2;
+    float dt = 1.0 / 60.0f;
+    const int SUBSTEPS = 8;
+    const int NUM_THREADS = std::thread::hardware_concurrency(); // Number of available threads
 
     sf::RectangleShape windButton;
     sf::Text windButtonText;
 
     Simulation::Simulation(int WIDTH, int HEIGHT, int NUM_PARTICLES) : window(sf::VideoMode(WIDTH, HEIGHT), "Particle Simulation"), fps(0) {
-        //setup fps limit and counter
+        // Setup fps limit and counter
         window.setFramerateLimit(60);
         if (!font.loadFromFile("Roboto-VariableFont_wdth,wght.ttf")) {
             throw std::runtime_error("Failed to load font");
@@ -33,16 +39,32 @@ namespace sim {
         windButtonText.setString("Wind: OFF");
         windButtonText.setPosition(WIDTH - 140, 18);
 
-        //obstacles.emplace_back(300, -10, 800, 150);
-        //obstacles.emplace_back(WIDTH/2, HEIGHT, 900, 650);
         for (int i = 0; i < NUM_PARTICLES; i++) {
-            float x = rand() % (WIDTH - 2 * (int) prtcl::RADIUS) + prtcl::RADIUS;
-            float y = rand() % (HEIGHT - 2 * (int) prtcl::RADIUS) + prtcl::RADIUS;
+            float x = rand() % (WIDTH - 2 * (int)prtcl::RADIUS) + prtcl::RADIUS;
+            float y = rand() % (HEIGHT - 2 * (int)prtcl::RADIUS) + prtcl::RADIUS;
             particles.emplace_back(x, y, HEIGHT, WIDTH);
         }
     }
 
-    void Simulation::resolveParticleCollision(prtcl::Particle &p1, prtcl::Particle &p2) {
+    void Simulation::mousePull(sf::Vector2f pos) {
+        for (prtcl::Particle& obj : particles) {
+            sf::Vector2f dir = pos - obj.position;
+            float dist = sqrt(dir.x * dir.x + dir.y * dir.y);
+            obj.accelerate(dir * 1.f);
+            //obj.update(dt);
+        }
+    }
+
+    void Simulation::mousePush(sf::Vector2f pos) {
+        for (prtcl::Particle& obj : particles) {
+            sf::Vector2f dir = pos - obj.position;
+            float dist = sqrt(dir.x * dir.x + dir.y * dir.y);
+            obj.accelerate(dir * -1.f);
+            //obj.update(dt);
+        }
+    }
+
+    void Simulation::resolveParticleCollision(prtcl::Particle& p1, prtcl::Particle& p2) {
         sf::Vector2f diff = p2.position - p1.position;
         float dist = std::sqrt(diff.x * diff.x + diff.y * diff.y);
 
@@ -67,8 +89,8 @@ namespace sim {
         }
     }
 
-    void Simulation::resolveObstacleCollision(prtcl::Particle &p) {
-        for (auto &obstacle : obstacles) {
+    void Simulation::resolveObstacleCollision(prtcl::Particle& p) {
+        for (auto& obstacle : obstacles) {
             sf::Vector2f collisionNormal;
             if (obstacle.checkCollision(p.position, prtcl::RADIUS, collisionNormal)) {
                 sf::Vector2f vel = p.getVelocity(dt);
@@ -94,19 +116,55 @@ namespace sim {
         }
     }
 
+    //from 1000p to 2000p need better optimization
     void Simulation::update(float dt) {
         float scaledDt = dt / SUBSTEPS;
         for (int step = 0; step < SUBSTEPS; step++) {
-            for (int i = 0; i < particles.size(); i++) {
-                particles[i].acceleration = {0.0f, prtcl::GRAVITY};
-                if (windActive) {
-                    particles[i].acceleration.y -= windStrength;
-                }
-                particles[i].update(scaledDt);
-                resolveObstacleCollision(particles[i]);
-                for (int j = i + 1; j < particles.size(); j++) {
-                    resolveParticleCollision(particles[i], particles[j]);
-                }
+            std::vector<std::thread> threads;
+            int chunkSize = particles.size() / NUM_THREADS;
+
+            // Parallelize particle updates
+            for (int t = 0; t < NUM_THREADS; t++) {
+                int start = t * chunkSize;
+                int end = (t == NUM_THREADS - 1) ? particles.size() : start + chunkSize;
+                threads.emplace_back([this, start, end, scaledDt]() {
+                    for (int i = start; i < end; i++) {
+                        particles[i].acceleration = { 0.0f, prtcl::GRAVITY };
+                        if (windActive) {
+                            particles[i].acceleration.y -= windStrength;
+                        }
+                        if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                            mousePull(sf::Vector2f(sf::Mouse::getPosition()));
+                        }
+                        if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+                            mousePush(sf::Vector2f(sf::Mouse::getPosition()));
+                        }
+                        particles[i].update(scaledDt);
+                        resolveObstacleCollision(particles[i]);
+                    }
+                });
+            }
+
+            for (auto& thread : threads) {
+                thread.join();
+            }
+
+            // Parallelize particle collisions
+            threads.clear();
+            for (int t = 0; t < NUM_THREADS; t++) {
+                int start = t * chunkSize;
+                int end = (t == NUM_THREADS - 1) ? particles.size() : start + chunkSize;
+                threads.emplace_back([this, start, end]() {
+                    for (int i = start; i < end; i++) {
+                        for (int j = i + 1; j < particles.size(); j++) {
+                            resolveParticleCollision(particles[i], particles[j]);
+                        }
+                    }
+                });
+            }
+
+            for (auto& thread : threads) {
+                thread.join();
             }
         }
     }
@@ -116,19 +174,31 @@ namespace sim {
         window.draw(fpsText);
         if (windActive) {
             windButton.setFillColor(sf::Color::Green);
-        } else {
+        }
+        else {
             windButton.setFillColor(sf::Color::Red);
         }
         window.draw(windButton);
         window.draw(windButtonText);
 
-        for (auto &o : obstacles) {
+        for (auto& o : obstacles) {
             o.draw(window);
         }
 
-        for (auto &p : particles) {
+        for (auto& p : particles) {
             p.draw(window);
         }
+
+        // Visualize pull force
+        // sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+        // for (prtcl::Particle& p : particles) {
+        //     sf::Vertex line[] = {
+        //         sf::Vertex(p.position, sf::Color::Red),
+        //         sf::Vertex(mousePos, sf::Color::Red)
+        //     };
+        //     window.draw(line, 2, sf::Lines);
+        // }
+
         window.display();
     }
 
@@ -138,18 +208,17 @@ namespace sim {
             while (window.pollEvent(event)) {
                 if (event.type == sf::Event::Closed)
                     window.close();
-                // Handle button click
-                if (event.type == sf::Event::MouseButtonPressed &&
-                    event.mouseButton.button == sf::Mouse::Left &&
-                    windButton.getGlobalBounds().contains( sf::Vector2f(event.mouseButton.x, event.mouseButton.y))) {
-                        windActive = !windActive;
-                        windButtonText.setString(windActive ? "Wind: ON" : "Wind: OFF");
+                //Handle button click
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left) &&
+                    windButton.getGlobalBounds().contains(sf::Vector2f(event.mouseButton.x, event.mouseButton.y))) {
+                    windActive = !windActive;
+                    windButtonText.setString(windActive ? "Wind: ON" : "Wind: OFF");
                 }
+
             }
-            countFPS();
-            for (int i = 0; i < 1; i++) {
-                update(dt);
-            }
+
+            //countFPS();
+            update(dt);
             render();
         }
     }

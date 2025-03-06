@@ -26,6 +26,11 @@ namespace sim{
 
     public:
         Simulation(int WIDTH, int HEIGHT, int NUM_PARTICLES);
+
+        void mousePull(sf::Vector2f pos);
+
+        void mousePush(sf::Vector2f pos);
+
         void run();
     };
 }

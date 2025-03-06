@@ -3,7 +3,7 @@
 
 namespace prtcl {
     const float RADIUS = 10.0f;
-    const float GRAVITY = 1000.0f;
+    const float GRAVITY = 0.0f;
 
     class Particle {
     public:
@@ -18,6 +18,8 @@ namespace prtcl {
         void update(float dt);
         void applyConstraints(float dt);
         void setVelocity(const sf::Vector2f& vel, float dt);
+
+        void accelerate(sf::Vector2f a);
 
         void draw(sf::RenderWindow &window);
 
