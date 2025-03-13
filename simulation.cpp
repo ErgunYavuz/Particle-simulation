@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <thread>
 #include <mutex>
-#include <algorithm>
+
 
 namespace sim {
     Simulation::Simulation(int width, int height, int numParticles)
@@ -18,6 +18,7 @@ namespace sim {
         // Setup fps limit and counter
         window.setFramerateLimit(60);
 
+        //load fonts
         if (!font.loadFromFile("Roboto-VariableFont_wdth,wght.ttf")) {
             throw std::runtime_error("Failed to load font");
         }
@@ -51,7 +52,7 @@ namespace sim {
         void Simulation::mousePull(sf::Vector2f pos) {
             for (prtcl::Particle& obj : particles) {
                 sf::Vector2f dir = pos - obj.position;
-                obj.accelerate(dir*2.f);
+                obj.accelerate(dir * 10.f);
             }
         }
 
@@ -163,22 +164,11 @@ namespace sim {
 
         for (int step = 0; step < substeps; step++) {
             for (auto& p : particles) {
-                p.acceleration = {0.0f, 1000.f};
+                //p.acceleration = {0.0f, 1000.f};
                 if (windActive) {
                     p.acceleration.y -= windStrength;
                 }
             }
-
-            // should not be there but otherwise interactions become inconsistent todo: move in handler
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
-                sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-                mousePull(mousePos);
-            }
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
-                sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-                mousePush(mousePos);
-            }
-
             // Phase 1: Update positions and resolve walls (parallel)
             {
                 std::vector<std::thread> threads;
@@ -245,25 +235,6 @@ namespace sim {
         }
     }
 
-    void Simulation::handleEvents() {
-        sf::Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == sf::Event::Closed) {
-                window.close();
-            }
-            // Handle wind button click
-            if (event.type == sf::Event::MouseButtonPressed &&
-                event.mouseButton.button == sf::Mouse::Left) {
-
-                sf::Vector2f mousePos(event.mouseButton.x, event.mouseButton.y);
-                if (windButton.getGlobalBounds().contains(mousePos)) {
-                    windActive = !windActive;
-                    windButtonText.setString(windActive ? "Wind: ON" : "Wind: OFF");
-                }
-            }
-        }
-    }
-
     void Simulation::render() {
         window.clear();
         // Draw UI elements
@@ -279,8 +250,34 @@ namespace sim {
     }
 
     void Simulation::run() {
+
         while (window.isOpen()) {
-            handleEvents();
+            sf::Event event;
+            while (window.pollEvent(event)) {
+                if (event.type == sf::Event::Closed) {
+                    window.close();
+                }
+                // should not be there but otherwise interactions become inconsistent todo: move in handler
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                    sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                    if (windButton.getGlobalBounds().contains(mousePos)) {
+                        windActive = !windActive;
+                        windButtonText.setString(windActive ? "Wind: ON" : "Wind: OFF");
+                    }
+                }
+            }
+
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+                sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                if (!windButton.getGlobalBounds().contains(mousePos)) {
+                    mousePull(mousePos);
+                }
+            }
+
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Right)) {
+                sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                mousePush(mousePos);
+            }
             countFPS();
             update(dt);
             render();

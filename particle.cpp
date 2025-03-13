@@ -28,6 +28,7 @@ namespace prtcl {
         //     velocity = velocity * (20.f / speed);
         //     setVelocity(velocity);
         // }
+        acceleration ={0.f, 500.f};
         shape.setPosition(position);
     }
 
