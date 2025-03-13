@@ -67,27 +67,28 @@ namespace sim {
         sf::Vector2f vel = p.getVelocity();
         const float radius = p.radius;
         const float restitution = p.restitution;
+        const int padding = 10;
         // Left wall
-        if (p.position.x < radius) {
+        if (p.position.x < radius ) {
             p.position.x = radius;
             vel.x *= -restitution;
             p.setVelocity(vel);
         }
         // Right wall
-        if (p.position.x > window.getSize().x - radius) {
-            p.position.x = window.getSize().x - radius;
+        if (p.position.x > window.getSize().x - radius - padding) {
+            p.position.x = window.getSize().x - radius - padding;
             vel.x *= -restitution;
             p.setVelocity(vel);
         }
         // Top wall
-        if (p.position.y < radius) {
-            p.position.y = radius;
+        if (p.position.y < radius + padding) {
+            p.position.y = radius + padding;
             vel.y *= -restitution;
             p.setVelocity(vel);
         }
         // Bottom wall
-        if (p.position.y + radius >= window.getSize().y) {
-            p.position.y = window.getSize().y - radius;
+        if (p.position.y > window.getSize().y - radius - padding) {
+            p.position.y = window.getSize().y - radius - padding;
             vel.y = -std::abs(vel.y) * restitution;
             vel.x *= 0.99f;  // Apply friction
             p.setVelocity(vel);
@@ -158,78 +159,17 @@ namespace sim {
         }
     }
 
-    //todo : implement threadpool
     void Simulation::update(float dt) {
         float scaledDt = dt / substeps;
-
         for (int step = 0; step < substeps; step++) {
-            for (auto& p : particles) {
-                //p.acceleration = {0.0f, 1000.f};
-                if (windActive) {
-                    p.acceleration.y -= windStrength;
-                }
-            }
-            // Phase 1: Update positions and resolve walls (parallel)
-            {
-                std::vector<std::thread> threads;
-                int chunkSize = particles.size() / numThreads;
-                for (int t = 0; t < numThreads; t++) {
-                    int start = t * chunkSize;
-                    int end = (t == numThreads - 1) ? particles.size() : start + chunkSize;
-                    threads.emplace_back([this, start, end, scaledDt]() {
-                        for (int i = start; i < end; i++) {
-                            particles[i].update(scaledDt);
-                            resolveWallCollisions(particles[i]);
-                        }
-                    });
-                }
-                for (auto& thread : threads) {
-                    thread.join();
-                }
-            }
-
-            // Build the grid
-            grid.clear();
-            cellSize = 2 * particles[0].radius;
             for (int i = 0; i < particles.size(); i++) {
-                auto& p = particles[i];
-                int cellX = static_cast<int>(p.position.x / cellSize);
-                int cellY = static_cast<int>(p.position.y / cellSize);
-                grid[CellKey(cellX, cellY)].push_back(i);
-            }
-
-            // Phase 2: Resolve collisions using the grid (parallel)
-            {
-                std::vector<std::thread> threads;
-                int chunkSize = particles.size() / numThreads;
-                for (int t = 0; t < numThreads; t++) {
-                    int start = t * chunkSize;
-                    int end = (t == numThreads - 1) ? particles.size() : start + chunkSize;
-                    threads.emplace_back([this, start, end]() {
-                        for (int i = start; i < end; i++) {
-                            auto& p = particles[i];
-                            int cellX = static_cast<int>(p.position.x / cellSize);
-                            int cellY = static_cast<int>(p.position.y / cellSize);
-
-                            // Check neighboring cells
-                            for (int dx = -1; dx <= 1; dx++) {
-                                for (int dy = -1; dy <= 1; dy++) {
-                                    CellKey key(cellX + dx, cellY + dy);
-                                    auto it = grid.find(key);
-                                    if (it != grid.end()) {
-                                        for (int j : it->second) {
-                                            if (j > i) {
-                                                resolveParticleCollision(particles[i], particles[j]);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
+                if (windActive) {
+                    particles[i].acceleration.y -= windStrength;
                 }
-                for (auto& thread : threads) {
-                    thread.join();
+                particles[i].update(scaledDt);
+                resolveWallCollisions(particles[i]);
+                for (int j = i + 1; j < particles.size(); j++) {
+                    resolveParticleCollision(particles[i], particles[j]);
                 }
             }
         }
