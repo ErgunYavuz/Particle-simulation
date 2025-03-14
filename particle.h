@@ -17,6 +17,11 @@ namespace prtcl {
         void setVelocity(const sf::Vector2f &vel);
         sf::Vector2f getVelocity() const;
         void accelerate(const sf::Vector2f &force);
+
+        sf::Vector2f getPosition() const;
+
+        void setColor();
+
         void draw(sf::RenderWindow &window);
     };
 }

@@ -30,6 +30,7 @@ namespace prtcl {
         // }
         acceleration ={0.f, 500.f};
         shape.setPosition(position);
+        setColor();
     }
 
     sf::Vector2f Particle::getVelocity() const {
@@ -44,7 +45,11 @@ namespace prtcl {
         acceleration += force;
     }
 
-    void Particle::draw(sf::RenderWindow& window) {
+    sf::Vector2f Particle::getPosition() const {
+        return position;
+    }
+
+    void Particle::setColor() {
         sf::Vector2f vel = getVelocity();
         float speed = std::sqrt(vel.x * vel.x + vel.y * vel.y);
 
@@ -52,7 +57,7 @@ namespace prtcl {
         float normalizedSpeed = std::clamp((speed - MIN_SPEED) / (MAX_SPEED - MIN_SPEED), 0.0f, 1.0f);
 
         // Color gradient from cold (blue) to hot (red)
-        const std::vector<sf::Color> colors = {
+        const std::vector colors = {
             sf::Color(0, 0, 255),    // Blue (cold)
             sf::Color(0, 255, 255),  // Cyan
             sf::Color(0, 255, 0),    // Green
@@ -67,7 +72,7 @@ namespace prtcl {
         float t = colorIndex - index1;
 
         //fixes particles going out of the window and crashing the sim due to segfault
-        if (position.x > 0 && position.y > 0 && position.x < window.getSize().x && position.y < window.getSize().y) {
+        if (position.x > 0 && position.y > 0 && position.x < 1920 && position.y < 1080) {
             sf::Color color;
             color.r = static_cast<sf::Uint8>(colors[index1].r + t * (colors[index2].r - colors[index1].r));
             color.g = static_cast<sf::Uint8>(colors[index1].g + t * (colors[index2].g - colors[index1].g));
@@ -77,8 +82,6 @@ namespace prtcl {
             shape.setFillColor(sf::Color::White);
             //std::cout << "out of window" << std::endl;
         }
-
-        window.draw(shape);
     }
 
 }  // namespace prtcl

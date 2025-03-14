@@ -2,7 +2,7 @@
 
 This is a simple particle simulation for learning and fun.
 
-![Alt Text](Ressources/Particle_simulation.gif)_
+![Alt Text](ressources/Particle_simulation.gif)_
 
 This project requires sfml dll files in the resources directory next to the executable produced.
 
