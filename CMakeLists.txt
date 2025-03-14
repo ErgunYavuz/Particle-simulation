@@ -6,10 +6,10 @@ set(CMAKE_CXX_STANDARD 20)
 
 # Add executable
 add_executable(verletIntegration main.cpp Particle.cpp simulation.cpp
-        LineObstacle.cpp
-        LineObstacle.h
+        obstacle.cpp
+        headers/obstacle.h
         Render.cpp
-        render.h
+        headers/render.h
 )
 
 # Set SFML's directories and libraries

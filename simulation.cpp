@@ -1,6 +1,5 @@
-#include "simulation.h"
+#include "headers/simulation.h"
 #include <cmath>
-
 
 namespace sim {
     Simulation::Simulation(int width, int height, int numParticles)

@@ -1,6 +1,5 @@
-#include "simulation.h"
-#include "render.h"
-
+#include "headers/simulation.h"
+#include "headers/render.h"
 
 int main() {
     const int WIDTH = 1920;

@@ -1,8 +1,8 @@
-#include "LineObstacle.h"
+#include "headers/obstacle.h"
 #include <cmath>
 #include <iostream>
 
-LineObstacle::LineObstacle(float x1, float y1, float x2, float y2) {
+obstacle::obstacle(float x1, float y1, float x2, float y2) {
     startPoint = {x1, y1};
     endPoint = {x2, y2};
     direction = endPoint - startPoint;
@@ -18,14 +18,14 @@ LineObstacle::LineObstacle(float x1, float y1, float x2, float y2) {
     normal = sf::Vector2f(-normalizedDirection.y, normalizedDirection.x);
 }
 
-sf::Vector2f LineObstacle::getClosestPoint(const sf::Vector2f& point) const {
+sf::Vector2f obstacle::getClosestPoint(const sf::Vector2f& point) const {
     sf::Vector2f pointVector = point - startPoint;
     float projection = pointVector.x * normalizedDirection.x + pointVector.y * normalizedDirection.y;
     projection = std::max(0.0f, std::min(projection, length));
     return startPoint + normalizedDirection * projection;
 }
 
-bool LineObstacle::checkCollision(sf::Vector2f &position, float radius, sf::Vector2f &collisionNormal) {
+bool obstacle::checkCollision(sf::Vector2f &position, float radius, sf::Vector2f &collisionNormal) {
     sf::Vector2f closestPoint = getClosestPoint(position);
 
     // Calculate distance and normal
@@ -43,6 +43,6 @@ bool LineObstacle::checkCollision(sf::Vector2f &position, float radius, sf::Vect
     return false;
 }
 
-void LineObstacle::draw(sf::RenderWindow &window) {
+void obstacle::draw(sf::RenderWindow &window) {
     window.draw(line);
 }

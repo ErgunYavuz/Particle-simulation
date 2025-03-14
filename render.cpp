@@ -1,8 +1,7 @@
-#include <iostream>
+#include "headers/render.h"
+#include "headers/simulation.h"
+#include "headers/particle.h"
 #include <sstream>
-#include "render.h"
-#include "simulation.h"
-#include "particle.h"
 
 namespace render {
     Renderer::Renderer(sf::RenderWindow &window, sim::Simulation &sim)
