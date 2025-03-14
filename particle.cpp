@@ -1,4 +1,4 @@
-#include "particle.h"
+#include "headers/particle.h"
 #include <cmath>
 #include <iostream>
 #include <vector>

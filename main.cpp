@@ -2,16 +2,17 @@
 #include "headers/render.h"
 
 int main() {
-    const int WIDTH = 1920;
-    const int HEIGHT = 1080;
+    const int WIDTH = 800;
+    const int HEIGHT = 800;
     const int NUM_PARTICLES = 500;
     const float STEPTIME = 1.f/60.f;
+    const int SUBSTEPS = 8;
     const int FRAMRATE = 60;
 
     sf::RenderWindow window = sf::RenderWindow(sf::VideoMode(WIDTH, HEIGHT), "Particle simulation");
     window.setFramerateLimit(FRAMRATE);
 
-    sim::Simulation sim = sim::Simulation(WIDTH, HEIGHT, NUM_PARTICLES);
+    sim::Simulation sim = sim::Simulation(WIDTH, HEIGHT, NUM_PARTICLES, SUBSTEPS);
     render::Renderer r = render::Renderer(window, sim);
 
     while (window.isOpen()){
@@ -35,6 +36,7 @@ int main() {
 
         sim.update(STEPTIME);
         r.render();
+
     }
     return 0;
 }

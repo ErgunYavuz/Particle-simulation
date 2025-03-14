@@ -1,5 +1,5 @@
 #pragma once
-#include "../simulation.h"
+#include "simulation.h"
 
 namespace render {
     class Renderer {

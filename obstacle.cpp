@@ -7,14 +7,12 @@ obstacle::obstacle(float x1, float y1, float x2, float y2) {
     endPoint = {x2, y2};
     direction = endPoint - startPoint;
     length = std::sqrt(direction.x * direction.x + direction.y * direction.y);
-    // Store normalized direction for faster calculations
     normalizedDirection = direction / length;
     line.setSize({length, 10.f});
-    line.setOrigin(0, 5.f);  // Center the line vertically
+    line.setOrigin(0, 5.f);
     line.setPosition(startPoint);
     line.setRotation(std::atan2(direction.y, direction.x) * 180.f / 3.14159f);
     line.setFillColor(sf::Color::White);
-    // Calculate the normal vector (perpendicular to the line)
     normal = sf::Vector2f(-normalizedDirection.y, normalizedDirection.x);
 }
 
@@ -28,12 +26,10 @@ sf::Vector2f obstacle::getClosestPoint(const sf::Vector2f& point) const {
 bool obstacle::checkCollision(sf::Vector2f &position, float radius, sf::Vector2f &collisionNormal) {
     sf::Vector2f closestPoint = getClosestPoint(position);
 
-    // Calculate distance and normal
     sf::Vector2f distanceVec = position - closestPoint;
     float distanceSq = distanceVec.x * distanceVec.x + distanceVec.y * distanceVec.y;
     float radiusSq = (radius + 5.0f) * (radius + 5.0f);
 
-    // Check collision
     if (distanceSq < radiusSq) {
         float distance = std::sqrt(distanceSq);
         collisionNormal = distanceVec / distance;

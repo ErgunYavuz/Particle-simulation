@@ -2,8 +2,6 @@
 #include <SFML/Graphics.hpp>
 
 namespace prtcl {
-
-
     class Particle {
     public:
         const float radius = 5.0f;

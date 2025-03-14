@@ -7,7 +7,6 @@ namespace render {
     Renderer::Renderer(sf::RenderWindow &window, sim::Simulation &sim)
        : window(window), sim(sim) {
 
-        // Load fonts
         if (!font.loadFromFile("Roboto-VariableFont_wdth,wght.ttf")) {
             throw std::runtime_error("Failed to load font");
         }

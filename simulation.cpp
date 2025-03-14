@@ -2,12 +2,11 @@
 #include <cmath>
 
 namespace sim {
-    Simulation::Simulation(int width, int height, int numParticles)
-        : width(width),
-          height(height),
-          substeps(6){
+    Simulation::Simulation(int width, int height, int numParticles, int substeps)
+    : width(width),
+      height(height),
+      substeps(substeps){
 
-        // Create particles
         particles.reserve(numParticles);
         for (int i = 0; i < numParticles; i++) {
             float x = rand() % (width - 1000);
@@ -103,11 +102,9 @@ namespace sim {
     //             sf::Vector2f vel = p.getVelocity();
     //             float restitution = p.getRestitution();
     //
-    //             // Calculate reflection vector
     //             float dot = vel.x * collisionNormal.x + vel.y * collisionNormal.y;
     //             sf::Vector2f reflection = vel - 2 * dot * collisionNormal * restitution;
     //
-    //             // Move particle slightly away from obstacle to prevent sticking
     //             p.position += collisionNormal * 0.5f;
     //             p.setVelocity(reflection);
     //         }
