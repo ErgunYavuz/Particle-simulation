@@ -10,6 +10,8 @@ add_executable(verletIntegration main.cpp Particle.cpp simulation.cpp
         headers/obstacle.h
         Render.cpp
         headers/render.h
+        UniformGrid.cpp
+        quadtree.cpp
 )
 
 # Set SFML's directories and libraries

@@ -5,7 +5,7 @@
 
 namespace prtcl {
     constexpr float MIN_SPEED = 0.0f;
-    constexpr float MAX_SPEED = 10.0f;
+    constexpr float MAX_SPEED = 7.0f;
 
     Particle::Particle(float x, float y) {
         position = {x, y};
@@ -28,7 +28,7 @@ namespace prtcl {
         //     velocity = velocity * (20.f / speed);
         //     setVelocity(velocity);
         // }
-        acceleration ={0.f, 500.f};
+        acceleration ={0.f, 0.f};
         shape.setPosition(position);
         setColor();
     }

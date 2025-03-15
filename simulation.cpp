@@ -1,31 +1,42 @@
-#include "headers/simulation.h"
 #include <cmath>
+#include "headers/simulation.h"
+
 
 namespace sim {
-    Simulation::Simulation(int width, int height, int numParticles, int substeps)
-    : width(width),
-      height(height),
-      substeps(substeps){
-
+    float subDt;
+    int cellSize;
+    Simulation::Simulation(int width, int height, int numParticles, int substeps, float dt)
+        : width(width),
+          height(height),
+          substeps(substeps),
+          tree(0, sf::FloatRect(0, 0, width, height)){
         particles.reserve(numParticles);
         for (int i = 0; i < numParticles; i++) {
-            float x = rand() % (width - 1000);
-            float y = rand() % (height - 1000);
+            float x = rand() % (width);
+            float y = rand() % (height);
             particles.emplace_back(x, y);
         }
+        subDt = dt/substeps;
+        cellSize = particles[0].radius * 4;
     }
 
     void Simulation::mousePull(sf::Vector2f pos) {
-        for (prtcl::Particle& obj : particles) {
-            sf::Vector2f dir = pos - obj.position;
-            obj.accelerate(dir * 10.f);
+        const float PULL_RADIUS_SQ = 100.0f * 100.0f;
+        for (auto& obj : particles) {
+            sf::Vector2f diff = pos - obj.position;
+            float distSq = diff.x*diff.x + diff.y*diff.y;
+            if (distSq > PULL_RADIUS_SQ) continue;
+            obj.accelerate(diff * 1000.f);
         }
     }
 
     void Simulation::mousePush(sf::Vector2f pos) {
-        for (prtcl::Particle& obj : particles) {
-            sf::Vector2f dir = pos - obj.position;
-            obj.accelerate(-dir*2.f);
+        const float PULL_RADIUS_SQ = 100.0f * 100.0f;
+        for (auto& obj : particles) {
+            sf::Vector2f diff = pos - obj.position;
+            float distSq = diff.x*diff.x + diff.y*diff.y;
+            if (distSq > PULL_RADIUS_SQ) continue;
+            obj.accelerate(-diff * 1000.f);
         }
     }
 
@@ -64,6 +75,8 @@ namespace sim {
     void Simulation::resolveParticleCollision(prtcl::Particle& p1, prtcl::Particle& p2) {
         sf::Vector2f diff = p2.position - p1.position;
         float dist = std::sqrt(diff.x * diff.x + diff.y * diff.y);
+        // float dx = std::abs(diff.x), dy = std::abs(diff.y);
+        // float dist = 0.96f * std::max(dx, dy) + 0.4f * std::min(dx, dy);  // ~5% error
         const float radius = p1.radius;
 
         if (dist < 2 * radius) {  // Particles are overlapping
@@ -95,6 +108,82 @@ namespace sim {
         }
     }
 
+    // void Simulation::update(float dt) {
+    //     float subDt = dt / substeps;
+    //     for (int step = 0; step < substeps; step++) {
+    //         // Clear and rebuild tree each step
+    //         tree.clear();
+    //         for (auto& p : particles) {
+    //             tree.insert(&p);
+    //         }
+    //
+    //         for (int i = 0; i < particles.size(); i++) {
+    //             particles[i].update(subDt);
+    //             resolveWallCollisions(particles[i]);
+    //
+    //             // Check only nearby particles
+    //             float queryRadius = particles[i].radius * 2;
+    //             sf::FloatRect queryArea(
+    //                 particles[i].position.x - queryRadius,
+    //                 particles[i].position.y - queryRadius,
+    //                 queryRadius * 2,
+    //                 queryRadius * 2
+    //             );
+    //
+    //             std::vector<prtcl::Particle*> nearby;
+    //             tree.getParticlesInRange(queryArea, nearby);
+    //
+    //             for (auto& other : nearby) {
+    //                 if (other != &particles[i]) {
+    //                     resolveParticleCollision(particles[i], *other);
+    //                 }
+    //             }
+    //         }
+    //     }
+    // }
+
+    void Simulation::update(float dt) {
+        UniformGrid grid(width, height, cellSize);
+
+        for (int step = 0; step < substeps; step++) {
+            // Update all particles first
+            for (auto& p : particles) {
+                p.update(subDt);
+                resolveWallCollisions(p);
+            }
+
+            // Clear and rebuild grid
+            grid.clear();
+            for (auto& p : particles) {
+                grid.insert(&p);
+            }
+
+            // Process collisions with optimized pattern
+            grid.processCollisions([this](prtcl::Particle* p1, prtcl::Particle* p2) {
+                resolveParticleCollision(*p1, *p2);
+            });
+        }
+    }
+
+
+    // void Simulation::update(float dt) {
+    //     float subDt = dt / substeps;
+    //     for (int step = 0; step < substeps; step++) {
+    //         for (int i = 0; i < particles.size(); i++) {
+    //             particles[i].update(subDt);
+    //             resolveWallCollisions(particles[i]);
+    //             for (int j = i + 1; j < particles.size(); j++) {
+    //                 resolveParticleCollision(particles[i], particles[j]);
+    //             }
+    //         }
+    //     }
+    // }
+
+    std::vector<prtcl::Particle> &Simulation::getParticle() {
+        return particles;
+    }
+
+
     // void Simulation::resolveObstacleCollision(prtcl::Particle& p) {
     //     for (auto& obstacle : obstacles) {
     //         sf::Vector2f collisionNormal;
@@ -110,21 +199,4 @@ namespace sim {
     //         }
     //     }
     // }
-
-    void Simulation::update(float dt) {
-        float subDt = dt / substeps;
-        for (int step = 0; step < substeps; step++) {
-            for (int i = 0; i < particles.size(); i++) {
-                particles[i].update(subDt);
-                resolveWallCollisions(particles[i]);
-                for (int j = i + 1; j < particles.size(); j++) {
-                    resolveParticleCollision(particles[i], particles[j]);
-                }
-            }
-        }
-    }
-
-    std::vector<prtcl::Particle> &Simulation::getParticle() {
-        return particles;
-    }
-}  // namespace sim
+}

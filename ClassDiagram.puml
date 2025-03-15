@@ -1,0 +1,72 @@
+@startuml
+' Define classes
+class Simulation {
+    - int width
+    - int height
+    - int substeps
+    - std::vector<prtcl::Particle> particles
+    - UniformGrid grid
+    + Simulation(int width, int height, int numParticles, int substeps, float dt)
+    + void mousePull(sf::Vector2f pos)
+    + void mousePush(sf::Vector2f pos)
+    + void resolveWallCollisions(prtcl::Particle& p)
+    + void resolveParticleCollision(prtcl::Particle& p1, prtcl::Particle& p2)
+    + void update(float dt)
+    + std::vector<prtcl::Particle>& getParticle()
+}
+
+class Particle {
+    - sf::Vector2f position
+    - sf::Vector2f oldPosition
+    - sf::Vector2f acceleration
+    - float radius
+    - float restitution
+    - sf::CircleShape shape
+    + Particle(float x, float y)
+    + void update(float dt)
+    + sf::Vector2f getVelocity() const
+    + void setVelocity(const sf::Vector2f& vel)
+    + void accelerate(const sf::Vector2f& force)
+    + sf::Vector2f getPosition() const
+    + void setColor()
+}
+
+class Renderer {
+    - sf::RenderWindow& window
+    - sim::Simulation& sim
+    - sf::Font font
+    - sf::Text fpsText
+    - sf::Clock mainClock
+    - sf::Clock fpsClock
+    + Renderer(sf::RenderWindow& window, sim::Simulation& sim)
+    + void render()
+    + void countFPS()
+}
+
+class UniformGrid {
+    - int cellSize
+    - int gridWidth
+    - int gridHeight
+    - std::vector<std::vector<prtcl::Particle*>> cells
+    + UniformGrid(int width, int height, int cellSize)
+    + void clear()
+    + int getCellIndex(const sf::Vector2f& position) const
+    + void insert(prtcl::Particle* particle)
+    + void processCollisions(std::function<void(prtcl::Particle*, prtcl::Particle*)> collisionFunc)
+    + void checkCellPair(std::vector<prtcl::Particle*>& cell1, std::vector<prtcl::Particle*>& cell2, std::function<void(prtcl::Particle*, prtcl::Particle*)> collisionFunc)
+    + void draw(sf::RenderWindow& window)
+}
+
+' Define relationships
+Simulation "1" *-- "many" Particle : contains
+Simulation "1" *-- "1" UniformGrid : contains
+Renderer "1" *-- "1" Simulation : uses
+UniformGrid "1" *-- "many" Particle : contains
+
+
+
+
+
+
+
+@enduml

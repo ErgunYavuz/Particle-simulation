@@ -21,6 +21,8 @@ namespace render {
         countFPS();
         window.clear();
         window.draw(fpsText);
+
+        //sim.tree.draw(window);
         for (auto& p : sim.getParticle()) {
             window.draw(p.shape);
         }
