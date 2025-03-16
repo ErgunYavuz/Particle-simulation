@@ -1,15 +1,13 @@
 #include <cmath>
 #include "headers/simulation.h"
 
-
 namespace sim {
     float subDt;
     int cellSize;
     Simulation::Simulation(int width, int height, int numParticles, int substeps, float dt)
         : width(width),
           height(height),
-          substeps(substeps),
-          tree(0, sf::FloatRect(0, 0, width, height)){
+          substeps(substeps){
         particles.reserve(numParticles);
         for (int i = 0; i < numParticles; i++) {
             float x = rand() % (width);
@@ -108,6 +106,30 @@ namespace sim {
         }
     }
 
+    //using uniform grids
+    void Simulation::update(float dt) {
+        UniformGrid grid(width, height, cellSize);
+
+        for (int step = 0; step < substeps; step++) {
+
+            for (auto& p : particles) {
+                p.update(subDt);
+                resolveWallCollisions(p);
+            }
+
+            grid.clear();
+            for (auto& p : particles) {
+                grid.insert(&p);
+            }
+
+            grid.processCollisions([this](prtcl::Particle* p1, prtcl::Particle* p2) {
+                resolveParticleCollision(*p1, *p2);
+            });
+        }
+    }
+
+
+    // using quadtree
     // void Simulation::update(float dt) {
     //     float subDt = dt / substeps;
     //     for (int step = 0; step < substeps; step++) {
@@ -142,30 +164,7 @@ namespace sim {
     //     }
     // }
 
-    void Simulation::update(float dt) {
-        UniformGrid grid(width, height, cellSize);
-
-        for (int step = 0; step < substeps; step++) {
-            // Update all particles first
-            for (auto& p : particles) {
-                p.update(subDt);
-                resolveWallCollisions(p);
-            }
-
-            // Clear and rebuild grid
-            grid.clear();
-            for (auto& p : particles) {
-                grid.insert(&p);
-            }
-
-            // Process collisions with optimized pattern
-            grid.processCollisions([this](prtcl::Particle* p1, prtcl::Particle* p2) {
-                resolveParticleCollision(*p1, *p2);
-            });
-        }
-    }
-
-
+    // O(N²) double for loop over all particles
     // void Simulation::update(float dt) {
     //     float subDt = dt / substeps;
     //     for (int step = 0; step < substeps; step++) {

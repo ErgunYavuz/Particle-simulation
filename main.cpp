@@ -1,10 +1,13 @@
+#include <omp.h>
+#include <thread>
+
 #include "headers/simulation.h"
 #include "headers/render.h"
 
 int main() {
     const int WIDTH = 1920;
     const int HEIGHT = 1080;
-    const int NUM_PARTICLES = 2000;
+    const int NUM_PARTICLES = 5000;
     const float STEPTIME = 1.f/60.f;
     const int SUBSTEPS = 8;
     const int FRAMERATE = 60;

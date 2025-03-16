@@ -7,6 +7,8 @@ class UniformGrid {
     std::vector<std::vector<prtcl::Particle*>> cells;
 
 public:
+    UniformGrid(){}
+
     UniformGrid(int width, int height, int cellSize)
         : cellSize(cellSize),
           gridWidth(width / cellSize + 1),

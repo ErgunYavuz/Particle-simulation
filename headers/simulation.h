@@ -16,8 +16,8 @@ namespace sim {
         void resolveObstacleCollision(prtcl::Particle& p);
 
     public:
-        Quadtree tree;
-        //UniformGrid grid;
+        //Quadtree tree;
+        UniformGrid grid;
         Simulation(int width, int height, int numParticles, int substeps);
 
         Simulation(int width, int height, int numParticles, int substeps, sf::RenderWindow &window);
