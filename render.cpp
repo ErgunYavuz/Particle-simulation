@@ -20,10 +20,15 @@ namespace render {
     void Renderer::render() {
         countFPS();
         window.clear();
-        //sim.tree.draw(window);
-        for (auto& p : sim.getParticle()) {
-            window.draw(p.shape);
+
+        // Draw all active particles
+        prtcl::ParticleSystem& particles = sim.getParticleSystem();
+        for (int i = 0; i < particles.count(); i++) {
+            if (particles.active[i]) {
+                window.draw(particles.shapes[i]);
+            }
         }
+
         window.draw(fpsText);
         window.display();
     }

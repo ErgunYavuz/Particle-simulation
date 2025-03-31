@@ -7,12 +7,12 @@
 int main() {
     const int WIDTH = 1920;
     const int HEIGHT = 1080;
-    const int NUM_PARTICLES = 5000;
+    const int NUM_PARTICLES = 2000;
     const float STEPTIME = 1.f/60.f;
     const int SUBSTEPS = 8;
     const int FRAMERATE = 60;
 
-    sf::RenderWindow window = sf::RenderWindow(sf::VideoMode(WIDTH, HEIGHT), "Particle simulation");
+    sf::RenderWindow window = sf::RenderWindow(sf::VideoMode(WIDTH, HEIGHT), "Particle simulation (SoA)");
     window.setFramerateLimit(FRAMERATE);
 
     sim::Simulation sim = sim::Simulation(WIDTH, HEIGHT, NUM_PARTICLES, SUBSTEPS, STEPTIME);
@@ -37,9 +37,6 @@ int main() {
 
         sim.update(STEPTIME);
         r.render();
-
     }
     return 0;
 }
-
-
