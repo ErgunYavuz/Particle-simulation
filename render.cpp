@@ -29,13 +29,19 @@ namespace render {
     }
 
     void Renderer::countFPS() {
+
         float frameTime = mainClock.restart().asSeconds();
-        if (fpsClock.getElapsedTime().asMilliseconds() >= 500) {
-            float fps = 1.f / frameTime;
-            std::ostringstream fpsStream;
-            fpsStream << "FPS: " << static_cast<int>(fps);
-            fpsText.setString(fpsStream.str());
-            fpsClock.restart();
-        }
+        float ms = frameTime * 1000.0f;
+        float fps = 1.f / frameTime;
+        std::ostringstream fpsStream;
+        fpsText.setString(std::to_string(fps) +"fps, "+ std::to_string(ms) + "ms, " + std::to_string(sim.getParticle().size()) + " particles");
+        fpsClock.restart();
+        // if (fpsClock.getElapsedTime().asMilliseconds() >= 500) {
+        //     float ms = frameTime * 1000.0f;
+        //     float fps = 1.f / frameTime;
+        //     std::ostringstream fpsStream;
+        //     fpsText.setString(std::to_string(fps) +"fps, "+ std::to_string(ms) + "ms, " + std::to_string(sim.getParticle().size()) + " particles");
+        //     fpsClock.restart();
+        // }
     }
 }

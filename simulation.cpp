@@ -3,26 +3,45 @@
 
 namespace sim {
     float subDt;
-    int cellSize;
+    int cellSize = 12;
+    UniformGrid grid;
+
+
     Simulation::Simulation(int width, int height, int numParticles, int substeps, float dt)
         : width(width),
           height(height),
-          substeps(substeps){
+          substeps(substeps) {
         particles.reserve(numParticles);
-        for (int i = 0; i < numParticles; i++) {
-            float x = rand() % (width);
-            float y = rand() % (height);
-            particles.emplace_back(x, y);
+
+        grid = UniformGrid(width, height, cellSize);
+
+        // Predefined positions (example positions - replace with your own)
+        std::vector<sf::Vector2f> predefinedPositions;
+
+        // If you want a grid pattern instead of manual positions:
+        int gridSize = std::ceil(std::sqrt(numParticles));
+        float spacing = 10.0f;
+        for (int i = 0; i < gridSize; i++) {
+            for (int j = 0; j < gridSize && predefinedPositions.size() < numParticles; j++) {
+                predefinedPositions.emplace_back(
+                    1.0f + i * spacing,
+                    1.0f + j * spacing
+                );
+            }
         }
-        subDt = dt/substeps;
-        cellSize = particles[0].radius * 4;
+
+        for (auto coords: predefinedPositions) {
+            particles.emplace_back(coords.x, coords.y);
+        }
+        subDt = dt / substeps;
     }
+
 
     void Simulation::mousePull(sf::Vector2f pos) {
         const float PULL_RADIUS_SQ = 100.0f * 100.0f;
-        for (auto& obj : particles) {
+        for (auto &obj: particles) {
             sf::Vector2f diff = pos - obj.position;
-            float distSq = diff.x*diff.x + diff.y*diff.y;
+            float distSq = diff.x * diff.x + diff.y * diff.y;
             if (distSq > PULL_RADIUS_SQ) continue;
             obj.accelerate(diff * 1000.f);
         }
@@ -30,21 +49,21 @@ namespace sim {
 
     void Simulation::mousePush(sf::Vector2f pos) {
         const float PULL_RADIUS_SQ = 100.0f * 100.0f;
-        for (auto& obj : particles) {
+        for (auto &obj: particles) {
             sf::Vector2f diff = pos - obj.position;
-            float distSq = diff.x*diff.x + diff.y*diff.y;
+            float distSq = diff.x * diff.x + diff.y * diff.y;
             if (distSq > PULL_RADIUS_SQ) continue;
             obj.accelerate(-diff * 1000.f);
         }
     }
 
-    void Simulation::resolveWallCollisions(prtcl::Particle& p) {
+    void Simulation::resolveWallCollisions(prtcl::Particle &p) {
         sf::Vector2f vel = p.getVelocity();
         const float radius = p.radius;
         const float restitution = p.restitution;
         const int padding = 10;
         // Left wall
-        if (p.position.x < radius ) {
+        if (p.position.x < radius) {
             p.position.x = radius;
             vel.x *= -restitution;
             p.setVelocity(vel);
@@ -65,19 +84,20 @@ namespace sim {
         if (p.position.y > height - radius - padding) {
             p.position.y = height - radius - padding;
             vel.y = -std::abs(vel.y) * restitution;
-            vel.x *= 0.99f;  // Apply friction
+            vel.x *= 0.99f; // Apply friction
             p.setVelocity(vel);
         }
     }
 
-    void Simulation::resolveParticleCollision(prtcl::Particle& p1, prtcl::Particle& p2) {
+    void Simulation::resolveParticleCollision(prtcl::Particle &p1, prtcl::Particle &p2) {
         sf::Vector2f diff = p2.position - p1.position;
         float dist = std::sqrt(diff.x * diff.x + diff.y * diff.y);
         // float dx = std::abs(diff.x), dy = std::abs(diff.y);
         // float dist = 0.96f * std::max(dx, dy) + 0.4f * std::min(dx, dy);  // ~5% error
         const float radius = p1.radius;
 
-        if (dist < 2 * radius) {  // Particles are overlapping
+        if (dist < 2 * radius) {
+            // Particles are overlapping
             // Calculate normal vector
             sf::Vector2f normal = (dist > 0) ? diff / dist : sf::Vector2f(1.0f, 0.0f);
             float overlap = (2 * radius - dist) * 0.5f;
@@ -95,7 +115,7 @@ namespace sim {
             // Only apply impulse if objects are moving toward each other
             if (velocityAlongNormal > 0) return;
 
-            float restitution = p1.restitution;  // Assuming both particles have same restitution
+            float restitution = p1.restitution; // Assuming both particles have same restitution
             float impulse = -(1 + restitution) * velocityAlongNormal / 2.0f;
 
             vel1 -= impulse * normal;
@@ -106,25 +126,77 @@ namespace sim {
         }
     }
 
+    void Simulation::processCollisions() {
+        for (auto &cell: grid.cells) {
+            for (size_t i = 0; i < cell.size(); i++) {
+                for (size_t j = i + 1; j < cell.size(); j++) {
+                    resolveParticleCollision(*cell[i], *cell[j]);
+                }
+            }
+        }
+        // check with adjacent cells
+        for (int y = 0; y < grid.gridHeight; y++) {
+            for (int x = 0; x < grid.gridWidth; x++) {
+                int cellIndex = y * grid.gridWidth + x;
+                std::vector<prtcl::Particle *> &currentCell = grid.cells[cellIndex];
+
+                // Check right neighbor
+                if (x < grid.gridWidth - 1) {
+                    int rightIndex = y * grid.gridWidth + (x + 1);
+                    for (auto p1: currentCell) {
+                        for (auto p2: grid.cells[rightIndex]) {
+                            resolveParticleCollision(*p1, *p2);
+                        }
+                    }
+                }
+
+                // Check bottom neighbor
+                if (y < grid.gridHeight - 1) {
+                    int bottomIndex = (y + 1) * grid.gridWidth + x;
+                    for (auto p1: currentCell) {
+                        for (auto p2: grid.cells[bottomIndex]) {
+                            resolveParticleCollision(*p1, *p2);
+                        }
+                    }
+                }
+
+                // Check bottom-right neighbor
+                if (x < grid.gridWidth - 1 && y < grid.gridHeight - 1) {
+                    int bottomRightIndex = (y + 1) * grid.gridWidth + (x + 1);
+                    for (auto p1: currentCell) {
+                        for (auto p2: grid.cells[bottomRightIndex]) {
+                            resolveParticleCollision(*p1, *p2);
+                        }
+                    }
+                }
+
+                // Check bottom-left neighbor (only if not at left edge)
+                if (x > 0 && y < grid.gridHeight - 1) {
+                    int bottomLeftIndex = (y + 1) * grid.gridWidth + (x - 1);
+                    for (auto p1: currentCell) {
+                        for (auto p2: grid.cells[bottomLeftIndex]) {
+                            resolveParticleCollision(*p1, *p2);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     //using uniform grids
     void Simulation::update(float dt) {
-        UniformGrid grid(width, height, cellSize);
-
         for (int step = 0; step < substeps; step++) {
-
-            for (auto& p : particles) {
+            for (auto &p: particles) {
                 p.update(subDt);
                 resolveWallCollisions(p);
             }
 
             grid.clear();
-            for (auto& p : particles) {
+            for (auto &p: particles) {
                 grid.insert(&p);
             }
 
-            grid.processCollisions([this](prtcl::Particle* p1, prtcl::Particle* p2) {
-                resolveParticleCollision(*p1, *p2);
-            });
+            processCollisions();
         }
     }
 

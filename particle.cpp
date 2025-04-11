@@ -28,9 +28,9 @@ namespace prtcl {
         //     velocity = velocity * (20.f / speed);
         //     setVelocity(velocity);
         // }
-        acceleration ={0.f, 0.f};
+        acceleration ={0.f, 1000.f};
         shape.setPosition(position);
-        setColor();
+        shape.setFillColor(sf::Color::White);
     }
 
     sf::Vector2f Particle::getVelocity() const {

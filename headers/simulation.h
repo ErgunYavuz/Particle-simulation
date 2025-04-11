@@ -4,7 +4,7 @@
 #include <vector>
 #include "particle.h"
 #include "../quadtree.cpp"
-#include "../uniformgrid.cpp"
+#include "../uniformGrid.cpp"
 
 namespace sim {
     class Simulation {
@@ -13,6 +13,9 @@ namespace sim {
 
         void resolveWallCollisions(prtcl::Particle& p);
         void resolveParticleCollision(prtcl::Particle& p1, prtcl::Particle& p2);
+
+        void processCollisions();
+
         void resolveObstacleCollision(prtcl::Particle& p);
 
     public:

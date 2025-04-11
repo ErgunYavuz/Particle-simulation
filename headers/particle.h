@@ -5,7 +5,7 @@ namespace prtcl {
     class Particle {
     public:
         const float radius = 5.0f;
-        const float restitution = 0.9f;
+        const float restitution = 0.8f;
         sf::Vector2f oldPosition;
         sf::Vector2f position;
         sf::Vector2f acceleration;

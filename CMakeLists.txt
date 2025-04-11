@@ -7,7 +7,7 @@ set(CMAKE_CXX_STANDARD 20)
 # Add executable
 add_executable(${PROJECT_NAME}
         main.cpp
-        Particle.cpp
+        particle.cpp
         simulation.cpp
         render.cpp
         uniformGrid.cpp
