@@ -5,8 +5,7 @@
 
 namespace render {
     Renderer::Renderer(sf::RenderWindow &window, sim::Simulation &sim)
-       : window(window), sim(sim) {
-
+        : window(window), sim(sim) {
         if (!font.loadFromFile("Roboto-VariableFont_wdth,wght.ttf")) {
             throw std::runtime_error("Failed to load font");
         }
@@ -21,7 +20,7 @@ namespace render {
         countFPS();
         window.clear();
         //sim.tree.draw(window);
-        for (auto& p : sim.getParticle()) {
+        for (auto &p: sim.getParticle()) {
             window.draw(p.shape);
         }
         window.draw(fpsText);
@@ -29,19 +28,13 @@ namespace render {
     }
 
     void Renderer::countFPS() {
-
         float frameTime = mainClock.restart().asSeconds();
         float ms = frameTime * 1000.0f;
         float fps = 1.f / frameTime;
         std::ostringstream fpsStream;
-        fpsText.setString(std::to_string(fps) +"fps, "+ std::to_string(ms) + "ms, " + std::to_string(sim.getParticle().size()) + " particles");
+        fpsText.setString(
+            std::to_string(fps) + "fps, " + std::to_string(ms) + "ms, " + std::to_string(sim.getParticle().size()) +
+            " particles");
         fpsClock.restart();
-        // if (fpsClock.getElapsedTime().asMilliseconds() >= 500) {
-        //     float ms = frameTime * 1000.0f;
-        //     float fps = 1.f / frameTime;
-        //     std::ostringstream fpsStream;
-        //     fpsText.setString(std::to_string(fps) +"fps, "+ std::to_string(ms) + "ms, " + std::to_string(sim.getParticle().size()) + " particles");
-        //     fpsClock.restart();
-        // }
     }
 }

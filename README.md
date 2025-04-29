@@ -4,8 +4,18 @@ This is a simple particle simulation for learning and fun.
 
 ![Alt Text](ressources/Particle_simulation.gif)_
 
-This project requires sfml dll files in the resources directory next to the executable produced.
+This project requires sfml dll files in the resources directory to be next to the executable produced.
+Fonts are needed to show performance metric counters.
 
-## Key Concepts
-1. **Particle Physics**: Particles move dynamically based on their velocity and external forces (e.g., gravity, wind).
-    - Collisions are detected with walls, particles, or obstacles, and velocities are adjusted accordingly.
+**Particle Physics**:
+
+- The physics is based on verlet integration
+- Particles move dynamically based on their velocity and applied external forces  (e.g., gravity,
+  collisions...).
+
+**Some features**:
+
+- Rendering is done using sfml libraries
+- Spatial partitioning : Using a uniform grid partitioning to speed up collision processing
+- multi threading : Using a threadpool with grid regions assigned to threads to split workload
+

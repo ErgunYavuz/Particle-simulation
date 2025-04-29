@@ -1,4 +1,5 @@
 @startuml
+' to be updated
 ' Define classes
 class Simulation {
     - int width

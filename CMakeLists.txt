@@ -10,18 +10,17 @@ add_executable(${PROJECT_NAME}
         particle.cpp
         simulation.cpp
         render.cpp
-        uniformGrid.cpp
 )
 
 # Conditional path setting based on platform
-if(WIN32)
+if (WIN32)
     # Windows-specific configuration
     set(CMAKE_PREFIX_PATH "C:/msys64/ucrt64") # Path to the MSYS2 MinGW64 directory
     # Find SFML package
     find_package(SFML 2.5 COMPONENTS graphics window system REQUIRED)
     # Link SFML libraries with winmm for Windows
     target_link_libraries(${PROJECT_NAME} sfml-graphics sfml-window sfml-system winmm)
-else()
+else ()
     # Explicitly set Linux SFML paths and ignore any Windows paths
     unset(SFML_DIR CACHE)
     unset(SFML_ROOT CACHE)
@@ -43,4 +42,4 @@ else()
     # Optional: Set additional compiler flags
     # target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra)
 
-endif()
+endif ()

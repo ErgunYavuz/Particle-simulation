@@ -3,8 +3,8 @@
 
 namespace render {
     class Renderer {
-
         sf::RenderWindow &window;
+
         sim::Simulation &sim;
         sf::Text fpsText;
 
@@ -14,8 +14,10 @@ namespace render {
         sf::Clock mainClock;
 
         void countFPS();
+
     public:
         Renderer(sf::RenderWindow &window, sim::Simulation &sim);
+
         void render();
     };
 }

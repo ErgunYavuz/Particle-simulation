@@ -1,7 +1,7 @@
 #include <vector>
 #include <SFML/Graphics.hpp>
 #include "headers/particle.h"
-
+// Implementation for testing
 class Quadtree {
     static const int MAX_CAPACITY = 8;
     static const int MAX_DEPTH = 8;

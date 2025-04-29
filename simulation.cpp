@@ -1,24 +1,25 @@
 #include <cmath>
+#include <future>
 #include "headers/simulation.h"
 
 namespace sim {
-    float subDt;
     int cellSize = 12;
-    UniformGrid grid;
-
 
     Simulation::Simulation(int width, int height, int numParticles, int substeps, float dt)
         : width(width),
           height(height),
-          substeps(substeps) {
+          substeps(substeps),
+          grid(UniformGrid(width, height, cellSize)),
+          threadPool(std::thread::hardware_concurrency()) {
         particles.reserve(numParticles);
 
-        grid = UniformGrid(width, height, cellSize);
+        threadCount = std::thread::hardware_concurrency();
 
-        // Predefined positions (example positions - replace with your own)
+        // Initialize work divisions for threads
+        workDivisions.resize(threadCount);
+
+        // Spawn particles in grid pattern
         std::vector<sf::Vector2f> predefinedPositions;
-
-        // If you want a grid pattern instead of manual positions:
         int gridSize = std::ceil(std::sqrt(numParticles));
         float spacing = 10.0f;
         for (int i = 0; i < gridSize; i++) {
@@ -33,17 +34,15 @@ namespace sim {
         for (auto coords: predefinedPositions) {
             particles.emplace_back(coords.x, coords.y);
         }
-        subDt = dt / substeps;
     }
 
-
     void Simulation::mousePull(sf::Vector2f pos) {
-        const float PULL_RADIUS_SQ = 100.0f * 100.0f;
+        const float PULL_RADIUS_SQ = 100.0f * 100.0f * 10;
         for (auto &obj: particles) {
             sf::Vector2f diff = pos - obj.position;
             float distSq = diff.x * diff.x + diff.y * diff.y;
             if (distSq > PULL_RADIUS_SQ) continue;
-            obj.accelerate(diff * 1000.f);
+            obj.accelerate(diff * 100.f);
         }
     }
 
@@ -53,7 +52,7 @@ namespace sim {
             sf::Vector2f diff = pos - obj.position;
             float distSq = diff.x * diff.x + diff.y * diff.y;
             if (distSq > PULL_RADIUS_SQ) continue;
-            obj.accelerate(-diff * 1000.f);
+            obj.accelerate(-diff * 10000.f);
         }
     }
 
@@ -92,12 +91,10 @@ namespace sim {
     void Simulation::resolveParticleCollision(prtcl::Particle &p1, prtcl::Particle &p2) {
         sf::Vector2f diff = p2.position - p1.position;
         float dist = std::sqrt(diff.x * diff.x + diff.y * diff.y);
-        // float dx = std::abs(diff.x), dy = std::abs(diff.y);
-        // float dist = 0.96f * std::max(dx, dy) + 0.4f * std::min(dx, dy);  // ~5% error
         const float radius = p1.radius;
 
+        // Particles are overlapping
         if (dist < 2 * radius) {
-            // Particles are overlapping
             // Calculate normal vector
             sf::Vector2f normal = (dist > 0) ? diff / dist : sf::Vector2f(1.0f, 0.0f);
             float overlap = (2 * radius - dist) * 0.5f;
@@ -126,68 +123,97 @@ namespace sim {
         }
     }
 
-    void Simulation::processCollisions() {
-        for (auto &cell: grid.cells) {
-            for (size_t i = 0; i < cell.size(); i++) {
-                for (size_t j = i + 1; j < cell.size(); j++) {
-                    resolveParticleCollision(*cell[i], *cell[j]);
+    void Simulation::processGridRange(int startIdx, int endIdx) {
+        for (int idx = startIdx; idx < endIdx; idx++) {
+            // Get y and x from linear index
+            int y = idx / grid.gridWidth;
+            int x = idx % grid.gridWidth;
+
+            int cellIndex = y * grid.gridWidth + x;
+            std::vector<prtcl::Particle *> &currentCell = grid.cells[cellIndex];
+
+            // Process current cell
+            for (size_t i = 0; i < currentCell.size(); i++) {
+                for (size_t j = i + 1; j < currentCell.size(); j++) {
+                    resolveParticleCollision(*currentCell[i], *currentCell[j]);
                 }
             }
-        }
-        // check with adjacent cells
-        for (int y = 0; y < grid.gridHeight; y++) {
-            for (int x = 0; x < grid.gridWidth; x++) {
-                int cellIndex = y * grid.gridWidth + x;
-                std::vector<prtcl::Particle *> &currentCell = grid.cells[cellIndex];
 
-                // Check right neighbor
-                if (x < grid.gridWidth - 1) {
-                    int rightIndex = y * grid.gridWidth + (x + 1);
-                    for (auto p1: currentCell) {
-                        for (auto p2: grid.cells[rightIndex]) {
-                            resolveParticleCollision(*p1, *p2);
-                        }
+            // Check right neighbor
+            if (x < grid.gridWidth - 1) {
+                int rightIndex = y * grid.gridWidth + (x + 1);
+                for (auto p1: currentCell) {
+                    for (auto p2: grid.cells[rightIndex]) {
+                        resolveParticleCollision(*p1, *p2);
                     }
                 }
+            }
 
-                // Check bottom neighbor
-                if (y < grid.gridHeight - 1) {
-                    int bottomIndex = (y + 1) * grid.gridWidth + x;
-                    for (auto p1: currentCell) {
-                        for (auto p2: grid.cells[bottomIndex]) {
-                            resolveParticleCollision(*p1, *p2);
-                        }
+            // Check bottom neighbor
+            if (y < grid.gridHeight - 1) {
+                int bottomIndex = (y + 1) * grid.gridWidth + x;
+                for (auto p1: currentCell) {
+                    for (auto p2: grid.cells[bottomIndex]) {
+                        resolveParticleCollision(*p1, *p2);
                     }
                 }
+            }
 
-                // Check bottom-right neighbor
-                if (x < grid.gridWidth - 1 && y < grid.gridHeight - 1) {
-                    int bottomRightIndex = (y + 1) * grid.gridWidth + (x + 1);
-                    for (auto p1: currentCell) {
-                        for (auto p2: grid.cells[bottomRightIndex]) {
-                            resolveParticleCollision(*p1, *p2);
-                        }
+            // Check bottom-right neighbor
+            if (x < grid.gridWidth - 1 && y < grid.gridHeight - 1) {
+                int bottomRightIndex = (y + 1) * grid.gridWidth + (x + 1);
+                for (auto p1: currentCell) {
+                    for (auto p2: grid.cells[bottomRightIndex]) {
+                        resolveParticleCollision(*p1, *p2);
                     }
                 }
+            }
 
-                // Check bottom-left neighbor (only if not at left edge)
-                if (x > 0 && y < grid.gridHeight - 1) {
-                    int bottomLeftIndex = (y + 1) * grid.gridWidth + (x - 1);
-                    for (auto p1: currentCell) {
-                        for (auto p2: grid.cells[bottomLeftIndex]) {
-                            resolveParticleCollision(*p1, *p2);
-                        }
+            // Check bottom-left neighbor
+            if (x > 0 && y < grid.gridHeight - 1) {
+                int bottomLeftIndex = (y + 1) * grid.gridWidth + (x - 1);
+                for (auto p1: currentCell) {
+                    for (auto p2: grid.cells[bottomLeftIndex]) {
+                        resolveParticleCollision(*p1, *p2);
                     }
                 }
             }
         }
     }
 
-    //using uniform grids
+    void Simulation::processCollisions() {
+        int totalCells = grid.gridWidth * grid.gridHeight;
+        int cellsPerThread = totalCells / threadCount;
+        int remainingCells = totalCells % threadCount;
+
+        std::vector<std::future<void> > futures;
+
+        // Distribute cells among threads
+        int currentCell = 0;
+        for (int i = 0; i < threadCount; i++) {
+            int cellsForThisThread = cellsPerThread + (i < remainingCells ? 1 : 0);
+            int startIdx = currentCell;
+            int endIdx = startIdx + cellsForThisThread;
+
+            // Submit task to thread pool
+            futures.push_back(
+                threadPool.enqueue([this, startIdx, endIdx]() {
+                    this->processGridRange(startIdx, endIdx);
+                })
+            );
+
+            currentCell = endIdx;
+        }
+
+        for (auto &future: futures) {
+            future.wait();
+        }
+    }
+
     void Simulation::update(float dt) {
         for (int step = 0; step < substeps; step++) {
             for (auto &p: particles) {
-                p.update(subDt);
+                p.update(dt / substeps);
                 resolveWallCollisions(p);
             }
 
@@ -200,74 +226,7 @@ namespace sim {
         }
     }
 
-
-    // using quadtree
-    // void Simulation::update(float dt) {
-    //     float subDt = dt / substeps;
-    //     for (int step = 0; step < substeps; step++) {
-    //         // Clear and rebuild tree each step
-    //         tree.clear();
-    //         for (auto& p : particles) {
-    //             tree.insert(&p);
-    //         }
-    //
-    //         for (int i = 0; i < particles.size(); i++) {
-    //             particles[i].update(subDt);
-    //             resolveWallCollisions(particles[i]);
-    //
-    //             // Check only nearby particles
-    //             float queryRadius = particles[i].radius * 2;
-    //             sf::FloatRect queryArea(
-    //                 particles[i].position.x - queryRadius,
-    //                 particles[i].position.y - queryRadius,
-    //                 queryRadius * 2,
-    //                 queryRadius * 2
-    //             );
-    //
-    //             std::vector<prtcl::Particle*> nearby;
-    //             tree.getParticlesInRange(queryArea, nearby);
-    //
-    //             for (auto& other : nearby) {
-    //                 if (other != &particles[i]) {
-    //                     resolveParticleCollision(particles[i], *other);
-    //                 }
-    //             }
-    //         }
-    //     }
-    // }
-
-    // O(N²) double for loop over all particles
-    // void Simulation::update(float dt) {
-    //     float subDt = dt / substeps;
-    //     for (int step = 0; step < substeps; step++) {
-    //         for (int i = 0; i < particles.size(); i++) {
-    //             particles[i].update(subDt);
-    //             resolveWallCollisions(particles[i]);
-    //             for (int j = i + 1; j < particles.size(); j++) {
-    //                 resolveParticleCollision(particles[i], particles[j]);
-    //             }
-    //         }
-    //     }
-    // }
-
     std::vector<prtcl::Particle> &Simulation::getParticle() {
         return particles;
     }
-
-
-    // void Simulation::resolveObstacleCollision(prtcl::Particle& p) {
-    //     for (auto& obstacle : obstacles) {
-    //         sf::Vector2f collisionNormal;
-    //         if (obstacle.checkCollision(p.position, p.getRadius(), collisionNormal)) {
-    //             sf::Vector2f vel = p.getVelocity();
-    //             float restitution = p.getRestitution();
-    //
-    //             float dot = vel.x * collisionNormal.x + vel.y * collisionNormal.y;
-    //             sf::Vector2f reflection = vel - 2 * dot * collisionNormal * restitution;
-    //
-    //             p.position += collisionNormal * 0.5f;
-    //             p.setVelocity(reflection);
-    //         }
-    //     }
-    // }
 }

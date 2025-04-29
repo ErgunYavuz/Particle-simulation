@@ -4,6 +4,7 @@
 #include <vector>
 
 namespace prtcl {
+    // Used only for coloring
     constexpr float MIN_SPEED = 0.0f;
     constexpr float MAX_SPEED = 7.0f;
 
@@ -28,7 +29,7 @@ namespace prtcl {
         //     velocity = velocity * (20.f / speed);
         //     setVelocity(velocity);
         // }
-        acceleration ={0.f, 1000.f};
+        acceleration = {0.f, 1000.f};
         shape.setPosition(position);
         shape.setFillColor(sf::Color::White);
     }
@@ -37,11 +38,11 @@ namespace prtcl {
         return position - oldPosition;
     }
 
-    void Particle::setVelocity(const sf::Vector2f& vel) {
+    void Particle::setVelocity(const sf::Vector2f &vel) {
         oldPosition = position - vel;
     }
 
-    void Particle::accelerate(const sf::Vector2f& force) {
+    void Particle::accelerate(const sf::Vector2f &force) {
         acceleration += force;
     }
 
@@ -58,11 +59,11 @@ namespace prtcl {
 
         // Color gradient from cold (blue) to hot (red)
         const std::vector colors = {
-            sf::Color(0, 0, 255),    // Blue (cold)
-            sf::Color(0, 255, 255),  // Cyan
-            sf::Color(0, 255, 0),    // Green
-            sf::Color(255, 255, 0),  // Yellow
-            sf::Color(255, 0, 0)     // Red (hot)
+            sf::Color(0, 0, 255), // Blue (cold)
+            sf::Color(0, 255, 255), // Cyan
+            sf::Color(0, 255, 0), // Green
+            sf::Color(255, 255, 0), // Yellow
+            sf::Color(255, 0, 0) // Red (hot)
         };
 
         // Interpolate between colors
@@ -71,17 +72,16 @@ namespace prtcl {
         int index2 = std::min(index1 + 1, static_cast<int>(colors.size() - 1));
         float t = colorIndex - index1;
 
-        //fixes particles going out of the window and crashing the sim due to segfault
+        // Fixes particles going out of the window and crashing the sim due to segfault
         if (position.x > 0 && position.y > 0 && position.x < 1920 && position.y < 1080) {
             sf::Color color;
             color.r = static_cast<sf::Uint8>(colors[index1].r + t * (colors[index2].r - colors[index1].r));
             color.g = static_cast<sf::Uint8>(colors[index1].g + t * (colors[index2].g - colors[index1].g));
             color.b = static_cast<sf::Uint8>(colors[index1].b + t * (colors[index2].b - colors[index1].b));
             shape.setFillColor(color);
-        }else {
+        } else {
             shape.setFillColor(sf::Color::White);
             //std::cout << "out of window" << std::endl;
         }
     }
-
-}  // namespace prtcl
+}
